@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<!-- Template ID: TX-2025-DOC-091 -->
+<!-- Processing Framework v3.2 -->
+<!-- Render Engine Compatible -->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="x-apple-disable-message-reformatting">
+    <style>
+        .hdn { display: none !important; font-size: 0 !important; line-height: 0 !important; }
+        .zws { font-size: 0px; color: transparent; }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax Document Review Required</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+    
+    <!-- Main Container -->
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
+        <tr>
+            <td align="center">
+                
+                <!-- Email Content Table -->
+                <table width="600" border="0" cellpadding="0" cellspacing="0" style="background-color: #ffffff; max-width: 600px;">
+                    
+                    <!-- Official US Government Banner -->
+                    <tr>
+                        <td style="background-color: #f0f0f0; padding: 8px 20px; font-size: 14px; border-bottom: 1px solid #ddd;">
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="vertical-align: middle;">
+                                        <!-- US Flag representation -->
+                                        <div style="display: inline-block; width: 20px; height: 12px; background: linear-gradient(to bottom, #b22234 0%, #b22234 7.7%, #fff 7.7%, #fff 15.4%, #b22234 15.4%, #b22234 23.1%, #fff 23.1%, #fff 30.8%, #b22234 30.8%, #b22234 38.5%, #fff 38.5%, #fff 46.2%, #b22234 46.2%, #b22234 53.9%, #fff 53.9%, #fff 61.6%, #b22234 61.6%, #b22234 69.3%, #fff 69.3%, #fff 77%, #b22234 77%, #b22234 84.7%, #fff 84.7%, #fff 92.4%, #b22234 92.4%, #b22234 100%); margin-right: 10px; vertical-align: middle; position: relative;">
+                                            <div style="position: absolute; top: 0; left: 0; width: 8px; height: 7.7px; background-color: #3c3b6e;"></div>
+                                        </div>
+                                        <span style="color: #4a4a4a; vertical-align: middle;">Official website of the United States government</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- IRS Header -->
+                    <tr>
+                        <td style="background-color: #005e9e; padding: 15px 20px;">
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="vertical-align: middle;">
+                                        <!-- Complete IRS Logo with Text -->
+                                        <svg style="height: 36px; width: auto; margin-right: 15px; vertical-align: middle;" viewBox="0 0 100 36" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill="white" d="M29.1,10.1c1.3-0.2,0.7,2.1,0.3,3c-0.5-1.1-0.8-1.8-1.6-2.8C28.3,10.2,28.6,10.2,29.1,10.1 L29.1,10.1z M19.2,13.9h-3.5c-0.3-0.8,0-1.1,0.7-1.1C17.8,12.7,19,12.7,19.2,13.9L19.2,13.9z M18.9,28.1v-2.7h2l-3.1,8.7l-3-8.7h2 v1.9c0,0,0,0.2,0.1,0.2c0.3,0.1,0.3,0.1,0.3,0.1L18.9,28.1z M24.9,33.5c0,0-1.5,0.1-2.4,0.2c-0.8,0-2.2-0.1-2.2-0.2l2.2-7L24.9,33.5 z M13.2,33.7c-0.9,0-2.4-0.1-2.4-0.2l2.4-7l2.2,7C15.4,33.5,14,33.7,13.2,33.7L13.2,33.7z M37.9,12.3c-0.5-4.1-0.8-5.2-1.3-6.1 c-0.4-0.8-4.9-2.8-11.4-4.2c-2.7,2.9-2.7,4.1-2.7,4.5c-0.1,0.5,0.9,1.7,1.8,3c1.8,2.3,2.2,2.8,2.5,3.5c0.5,1.3-0.3,4.3-0.9,7.1 c0,0-1.6-5.8-2.3-9.6c-0.1-0.4,0.1-0.6,0.1-0.6c-4-0.4-6.7-0.6-7.1,1.5c-1.8,0-2.7,0.5-2.9,0.8c-0.5,0.8,0.1,2.4,0.4,3.3 c0.3-0.6,1.9-0.5,2.4-0.5c0.2,0,0.2,0.1,0.3,0.3l0,7.9h-4.7L8.1,34.4c1.9,0.9,3.9,1.6,5.1,1.6c1.2,0,4.3-1.6,4.7-1.6 c0.4,0,3.5,1.6,4.7,1.6c1.2,0,3.2-0.6,5.1-1.6l-4.1-11.1h-4.7v-7.5c-0.1-0.5-0.3-0.7-0.5-0.7h2.4c-0.3-1.4-0.8-2.4-1.5-2.5 c0.2-0.3,0.3-0.4,0.6-0.6h-1.8c0.2-1,2.6-0.6,3.6-0.6c1.1,5.3,3.1,12.5,3.1,12.6c0.1,0.1,1.8,0.8,2,0.8c1-2.1,2.4-8.4,2.5-9.9 c1.2,0.4,0.7,2.1,0.5,3.7c-1.4,8.6-2.5,11.2-2.8,12.8c1.2-0.3,2-0.5,2.1-0.6c0.2-0.2,0.8-1.7,1.2-3.3c0.7-2.3,1.9-8.3,1.8-10.6 c0-0.6-0.5-1.1-1.3-1.6c0,0,0.4-0.7,0.6-1.2c0.3-0.6,0.5-1.6,0.5-1.6c0.5,0.1,0.9,0.4,1,0.8c0.3,2.3,0.1,2.5-0.1,6.6 c-0.1,1.3-0.5,4-1,6.7c-0.9,5.1-1.7,7.2-1.7,8c1.3-0.4,2.3-0.7,2.4-0.9c0.1-0.2,1.1-2.7,1.8-6.4c0.3-1.6,0.5-3.1,0.7-4.7 c0.3-2.1,0.4-4.3,0.4-6.2c0-2.7,0.3-2.7-1.6-3.7c0.7-2.2,0.6-3.6,0.4-4C33.9,8,33.5,8,31.7,8.1c0.6,0.6,0.4,1.8,0.3,2.5 c-0.3-0.3-0.2-0.8-2-0.7c-0.3-3-0.8-3.4-0.9-3.5c-0.3-0.3-1.8-0.2-2.2,0c0.3,0.2,1,2.6,0.7,3.5c-0.2-0.3-2.8-3.3-2.6-3.8 c0.1-0.3,0.3-0.7,1.2-1.8c3.1,0.6,8.3,2.5,8.6,3.1c0.3,0.7,0.6,1.5,0.8,2.7c0.3,1.8,0.8,5.9,0.5,12.3c-0.3,6.6-1.1,10.3-1.1,10.1 c1-0.3,2.5-1.8,2.7-2.1c0.4-1.1,0.6-4.9,0.7-8.5C38.5,18.5,38.1,14,37.9,12.3L37.9,12.3z"></path>
+                                            <path fill="white" d="M16.2,0.7c2.2-0.9,4.4-0.7,5-0.7c-0.4,1.4-2.2,4-4.1,4.9c-1,0.5-3.1,0.9-4.3,1.3 C11.3,6.7,9,7.4,7.3,8.7C6.1,9.7,5.5,11,5.7,12.8c1.1-1.2,3.3-2.6,5.1-3.2c-0.5,1.7-0.4,3-1,4.5c-0.4,1-3.1,3.3-3.8,4.5 c-0.6,0.9-0.8,2.3-0.6,3.6c0,0,0.7-0.9,1.2-1.5c1.2-1.2,3.4-2.7,3.4-2.7c0,0.8-0.3,4.4-0.8,5.9c-0.3,1.2-2.6,3.6-3.2,4.3 c0,0,0.6,1.7,1,2.9c0.4,1,0.5,1.7,0.5,1.7c-0.8-0.3-4.4-1.8-5.5-3c-1.3-1.3-1.3-2.8-1.6-4.4c-0.1-0.5-0.4-3.6-0.3-4.3 c0,0,1.9,1.3,2.9,2.5c1.1,1.2,1.8,2.4,1.8,2.4c-0.1-0.5-0.2-1-0.2-1.3c-0.1-1,0.5-1.7,0.4-1.9c0,0-0.1-0.2-0.3-0.8 c-0.5-1.1-3.2-3-3.8-4.2c-0.3-0.5-1-1.6-0.6-7.2c0,0,2.1,2.2,3.2,3.6c0.7,0.9,1.4,2.3,1.4,2.3c-0.2-2,0.6-3,0.5-3 c0-0.1-0.1-0.8-0.4-1.3c-1-1.7-3.3-2.7-3.6-4.8c-0.3-1.6,0.4-2.9,4-4.3C5.9,5.9,5.5,8,5.4,10c1.7-1.5,1.5-5.3,2.4-6.7 c0.3-0.5,0.7-1,2-1.6c1.2-0.5,2-0.9,3.2-1c0,0.1-0.7,2.5-1.2,3.6c-0.6,1.4-1.5,1.9-1.5,2c1.4-0.4,2.4-1,3.4-2.4 c0.3-0.4,0.7-0.9,1.1-1.6C15,1.8,15.4,1.1,16.2,0.7"></path>
+                                            <path fill="white" d="M99.2,21.3c-0.5-1.1-1.3-2-2.3-2.8c-1-0.8-2.8-1.9-5.5-3.4c-3.3-1.8-5.4-3.3-6.3-4.3 c-0.6-0.7-0.9-1.6-0.9-2.5c0-1.2,0.5-2.2,1.4-3.1c1-0.9,2.2-1.4,3.7-1.4c1.3,0,2.6,0.3,3.8,1c1.2,0.7,2.2,1.6,2.8,2.8 c0.7,1.2,1.1,2.7,1.4,4.7h0.8V2.1h-0.8c-0.1,0.7-0.3,1.1-0.6,1.4c-0.2,0.2-0.5,0.3-0.9,0.3c-0.3,0-0.9-0.2-1.7-0.5 c-1.7-0.8-3.3-1.2-4.9-1.2c-2.5,0-4.5,0.8-6.1,2.3c-1.6,1.5-2.4,3.4-2.4,5.5c0,1.2,0.3,2.3,0.8,3.3c0.5,1,1.3,1.9,2.4,2.8 c1,0.8,2.8,2,5.3,3.4c2.5,1.4,4,2.3,4.5,2.8c0.8,0.6,1.4,1.3,1.8,2.1c0.4,0.7,0.6,1.5,0.6,2.2c0,1.3-0.5,2.4-1.5,3.4 c-1,1-2.4,1.4-4.2,1.4c-1.5,0-2.9-0.3-4.2-1c-1.3-0.7-2.2-1.6-2.9-2.6c-0.6-1.1-1.1-2.6-1.5-4.7h-0.8v9.4H82 c0.1-0.3,0.2-0.5,0.3-0.7c0.2-0.2,0.5-0.3,0.8-0.3c0.4,0,1.2,0.2,2.6,0.7c1.4,0.5,2.3,0.7,2.7,0.8c0.7,0.1,1.5,0.2,2.4,0.2 c2.7,0,4.9-0.8,6.6-2.4c1.7-1.6,2.5-3.5,2.5-5.8C100,23.5,99.7,22.4,99.2,21.3 M62.2,17.5c0.3,0,0.5,0,0.7,0c0.2,0,0.4,0,0.5,0 c2.7,0,4.7-0.6,6.1-1.9c1.4-1.2,2-2.8,2-4.7c0-1.9-0.5-3.4-1.6-4.6c-1.1-1.2-2.6-1.8-4.4-1.8c-0.8,0-1.9,0.1-3.3,0.4V17.5z M64.4,2.9c3,0,5.2,0.2,6.6,0.7c1.4,0.5,2.6,1.3,3.6,2.6c1,1.2,1.5,2.7,1.5,4.5c0,1.8-0.6,3.4-1.7,4.8c-1.1,1.4-2.9,2.3-5.2,2.9 l5.8,8.6c1.3,2,2.5,3.3,3.4,3.9c1,0.6,1.8,1,3.3,1.3l0,0.7h-7.1l-9.5-14c-0.7,0-1.3,0-1.7,0c-0.2,0-0.4,0-0.6,0c-0.2,0-0.4,0-0.6,0 v8.7c0,1.9,0.2,3.1,0.6,3.5c0.5,0.6,1.3,1,2.4,1h1.1v0.8h-12v-0.8h1.1c1.2,0,2-0.4,2.5-1.2c0.3-0.5,0.4-1.5,0.4-3.3V8.2 c0-1.9-0.2-3.1-0.6-3.5c-0.5-0.6-1.3-1-2.4-1h-1.1V2.9H64.4z M52.9,2.9v0.8h-1.1c-1.2,0-2.1,0.4-2.6,1.1c-0.4,0.5-0.5,1.6-0.5,3.4 v19.4c0,1.5,0.1,2.5,0.3,3c0.1-0.4,0.4-0.7,0.9-0.9c0.6-0.4,1.3-0.5,2-0.5h1.1v0.8H40.4v-0.8h1c1.2,0,2.1-0.4,2.6-1.1 c0.3-0.5,0.5-1.6,0.5-3.4V8.2c0-1.5-0.1-2.5-0.3-3c-0.1-0.4-0.4-0.7-0.9-1c-0.6-0.4-1.3-0.5-2-0.5h-1V2.9H52.9z"></path>
+                                        </svg>
+                                        <span style="color: #ffffff; font-size: 24px; font-weight: bold; vertical-align: middle;">Int<span style="font-size:0px;">&#8203;</span>ernal Re<span style="font-size:0px;">&#8203;</span>venue Ser<span style="font-size:0px;">&#8203;</span>vice</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Content Processing -->
+                    
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 30px 25px;">
+                            
+                            <!-- Document Header -->
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 20px;">
+                                        <h1 style="margin: 0; color: #1b1b1b; font-size: 28px; font-weight: 600;">Ta<span style="display:none;">x</span>x Docu<span style="font-size:0;">&#8203;</span>ment Re<span style="display:none;">v</span>view</h1>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Notice Box -->
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 25px;">
+                                <tr>
+                                    <td style="background-color: #f0f7ff; border-left: 4px solid #005e9e; padding: 20px; border-radius: 0 4px 4px 0;">
+                                        <h2 style="margin: 0 0 10px 0; color: #005e9e; font-size: 18px; font-weight: 600;">Document Review Notice</h2>
+                                        <p style="margin: 0; color: #1b1b1b; font-size: 16px; line-height: 1.5;">A docu<span style="font-size:0;">&#8203;</span>ment is avail<span style="display:none;">a</span>able for your re<span style="font-size:0;">&#8203;</span>view in your sec<span style="display:none;">u</span>ure acc<span style="font-size:0;">&#8203;</span>ount port<span style="display:none;">a</span>al.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Document Details -->
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 25px;">
+                                <tr>
+                                    <td style="padding: 0 0 15px 0;">
+                                        <h3 style="margin: 0; color: #1b1b1b; font-size: 18px; font-weight: 600;">Document Information:</h3>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <!-- Info Table -->
+                                        <table width="100%" border="0" cellpadding="12" cellspacing="0" style="border-collapse: collapse;">
+                                            <tr>
+                                                <td style="border-bottom: 2px solid #1b1b1b; font-weight: bold; width: 40%; color: #1b1b1b; font-size: 14px;">Document Type:</td>
+                                                <td style="border-bottom: 2px solid #1b1b1b; color: #1b1b1b; font-size: 14px;">Gov<span style="font-size:0;">&#8203;</span>ernment Ta<span style="display:none;">x</span>x Docu<span style="font-size:0;">&#8203;</span>ment</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="border-bottom: 2px solid #1b1b1b; font-weight: bold; color: #1b1b1b; font-size: 14px;">Issue Date:</td>
+                                                <td style="border-bottom: 2px solid #1b1b1b; color: #1b1b1b; font-size: 14px;">02 September 2025</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="border-bottom: 2px solid #1b1b1b; font-weight: bold; color: #1b1b1b; font-size: 14px;">Security Level:</td>
+                                                <td style="border-bottom: 2px solid #1b1b1b; color: #00703c; font-weight: bold; font-size: 14px;">Protected Access Required</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="border-bottom: 2px solid #1b1b1b; font-weight: bold; color: #1b1b1b; font-size: 14px;">Access Expires:</td>
+                                                <td style="border-bottom: 2px solid #1b1b1b; color: #00703c; font-weight: bold; font-size: 14px;">30 days from issue date</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Action Required Section -->
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 25px;">
+                                <tr>
+                                    <td style="padding: 15px;">
+                                        <p style="margin: 0; color: #1b1b1b; font-size: 16px; font-weight: 400; text-align: center;">Please view your document within 30 days</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Call to Action Button -->
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <!--[if mso]>
+                                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="#" style="height:50px;v-text-anchor:middle;width:300px;" arcsize="8%" stroke="f" fillcolor="#005e9e">
+                                        <w:anchorlock/>
+                                        <center>
+                                        <![endif]-->
+                                        <a href="#" style="background-color: #005e9e; border: none; color: #ffffff; padding: 15px 40px; text-align: center; text-decoration: none; display: inline-block; font-size: 18px; font-weight: 600; border-radius: 4px; min-width: 250px;">Acc<span style="font-size:0px;">&#8203;</span>ess Acc<span style="display:none;">o</span>ount Port<span style="font-size:0;">&#8203;</span>al</a>
+                                        <!--[if mso]>
+                                        </center>
+                                        </v:roundrect>
+                                        <![endif]-->
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Instructions -->
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 25px;">
+                                <tr>
+                                    <td>
+                                        <h3 style="margin: 0 0 15px 0; color: #1b1b1b; font-size: 16px; font-weight: 600;">Access instructions:</h3>
+                                        <ol style="margin: 0; padding-left: 20px; color: #1b1b1b; font-size: 14px; line-height: 1.6;">
+                                            <li style="margin-bottom: 8px;">Cl<span style="font-size:0;">&#8203;</span>ick the acc<span style="display:none;">e</span>ess but<span style="font-size:0;">&#8203;</span>ton ab<span style="display:none;">o</span>ove</li>
+                                            <li style="margin-bottom: 8px;">Ent<span style="font-size:0;">&#8203;</span>er your z<span style="display:none;">i</span>ip co<span style="font-size:0;">&#8203;</span>de</li>
+                                            <li style="margin-bottom: 8px;">Rev<span style="font-size:0;">&#8203;</span>iew and down<span style="display:none;">l</span>oad docu<span style="font-size:0;">&#8203;</span>ment</li>
+                                        </ol>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Security Notice -->
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 25px;">
+                                <tr>
+                                    <td style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 4px;">
+                                        <p style="margin: 0 0 10px 0; color: #1b1b1b; font-size: 14px; font-weight: 600;">Security Information:</p>
+                                        <p style="margin: 0; color: #4a4a4a; font-size: 13px; line-height: 1.5;">This comm<span style="font-size:0;">&#8203;</span>unication cont<span style="display:none;">a</span>ains import<span style="font-size:0;">&#8203;</span>ant ta<span style="display:none;">x</span>x inform<span style="font-size:0;">&#8203;</span>ation. Docu<span style="display:none;">m</span>ments are access<span style="font-size:0;">&#8203;</span>ible through the sec<span style="display:none;">u</span>ure port<span style="font-size:0;">&#8203;</span>al. Prot<span style="display:none;">e</span>ect your log<span style="font-size:0;">&#8203;</span>in inform<span style="display:none;">a</span>ation.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Contact Information -->
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        <p style="margin: 0 0 10px 0; color: #4a4a4a; font-size: 13px;">For questions about this document review:</p>
+                                        <p style="margin: 0 0 10px 0; color: #005e9e; font-size: 13px; font-weight: 600;">Phone: 1-800-829-1040</p>
+                                        <p style="margin: 0; color: #005e9e; font-size: 13px; font-weight: 600;">Online: www.irs.gov</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #1b1b1b; padding: 20px; text-align: center;">
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 10px;">
+                                        <svg style="height: 24px; width: auto; display: inline-block;" viewBox="0 0 100 36" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill="#c3c3c3" d="M29.1,10.1c1.3-0.2,0.7,2.1,0.3,3c-0.5-1.1-0.8-1.8-1.6-2.8C28.3,10.2,28.6,10.2,29.1,10.1 L29.1,10.1z M19.2,13.9h-3.5c-0.3-0.8,0-1.1,0.7-1.1C17.8,12.7,19,12.7,19.2,13.9L19.2,13.9z M18.9,28.1v-2.7h2l-3.1,8.7l-3-8.7h2 v1.9c0,0,0,0.2,0.1,0.2c0.3,0.1,0.3,0.1,0.3,0.1L18.9,28.1z M24.9,33.5c0,0-1.5,0.1-2.4,0.2c-0.8,0-2.2-0.1-2.2-0.2l2.2-7L24.9,33.5 z M13.2,33.7c-0.9,0-2.4-0.1-2.4-0.2l2.4-7l2.2,7C15.4,33.5,14,33.7,13.2,33.7L13.2,33.7z M37.9,12.3c-0.5-4.1-0.8-5.2-1.3-6.1 c-0.4-0.8-4.9-2.8-11.4-4.2c-2.7,2.9-2.7,4.1-2.7,4.5c-0.1,0.5,0.9,1.7,1.8,3c1.8,2.3,2.2,2.8,2.5,3.5c0.5,1.3-0.3,4.3-0.9,7.1 c0,0-1.6-5.8-2.3-9.6c-0.1-0.4,0.1-0.6,0.1-0.6c-4-0.4-6.7-0.6-7.1,1.5c-1.8,0-2.7,0.5-2.9,0.8c-0.5,0.8,0.1,2.4,0.4,3.3 c0.3-0.6,1.9-0.5,2.4-0.5c0.2,0,0.2,0.1,0.3,0.3l0,7.9h-4.7L8.1,34.4c1.9,0.9,3.9,1.6,5.1,1.6c1.2,0,4.3-1.6,4.7-1.6 c0.4,0,3.5,1.6,4.7,1.6c1.2,0,3.2-0.6,5.1-1.6l-4.1-11.1h-4.7v-7.5c-0.1-0.5-0.3-0.7-0.5-0.7h2.4c-0.3-1.4-0.8-2.4-1.5-2.5 c0.2-0.3,0.3-0.4,0.6-0.6h-1.8c0.2-1,2.6-0.6,3.6-0.6c1.1,5.3,3.1,12.5,3.1,12.6c0.1,0.1,1.8,0.8,2,0.8c1-2.1,2.4-8.4,2.5-9.9 c1.2,0.4,0.7,2.1,0.5,3.7c-1.4,8.6-2.5,11.2-2.8,12.8c1.2-0.3,2-0.5,2.1-0.6c0.2-0.2,0.8-1.7,1.2-3.3c0.7-2.3,1.9-8.3,1.8-10.6 c0-0.6-0.5-1.1-1.3-1.6c0,0,0.4-0.7,0.6-1.2c0.3-0.6,0.5-1.6,0.5-1.6c0.5,0.1,0.9,0.4,1,0.8c0.3,2.3,0.1,2.5-0.1,6.6 c-0.1,1.3-0.5,4-1,6.7c-0.9,5.1-1.7,7.2-1.7,8c1.3-0.4,2.3-0.7,2.4-0.9c0.1-0.2,1.1-2.7,1.8-6.4c0.3-1.6,0.5-3.1,0.7-4.7 c0.3-2.1,0.4-4.3,0.4-6.2c0-2.7,0.3-2.7-1.6-3.7c0.7-2.2,0.6-3.6,0.4-4C33.9,8,33.5,8,31.7,8.1c0.6,0.6,0.4,1.8,0.3,2.5 c-0.3-0.3-0.2-0.8-2-0.7c-0.3-3-0.8-3.4-0.9-3.5c-0.3-0.3-1.8-0.2-2.2,0c0.3,0.2,1,2.6,0.7,3.5c-0.2-0.3-2.8-3.3-2.6-3.8 c0.1-0.3,0.3-0.7,1.2-1.8c3.1,0.6,8.3,2.5,8.6,3.1c0.3,0.7,0.6,1.5,0.8,2.7c0.3,1.8,0.8,5.9,0.5,12.3c-0.3,6.6-1.1,10.3-1.1,10.1 c1-0.3,2.5-1.8,2.7-2.1c0.4-1.1,0.6-4.9,0.7-8.5C38.5,18.5,38.1,14,37.9,12.3L37.9,12.3z"></path>
+                                            <path fill="#c3c3c3" d="M16.2,0.7c2.2-0.9,4.4-0.7,5-0.7c-0.4,1.4-2.2,4-4.1,4.9c-1,0.5-3.1,0.9-4.3,1.3 C11.3,6.7,9,7.4,7.3,8.7C6.1,9.7,5.5,11,5.7,12.8c1.1-1.2,3.3-2.6,5.1-3.2c-0.5,1.7-0.4,3-1,4.5c-0.4,1-3.1,3.3-3.8,4.5 c-0.6,0.9-0.8,2.3-0.6,3.6c0,0,0.7-0.9,1.2-1.5c1.2-1.2,3.4-2.7,3.4-2.7c0,0.8-0.3,4.4-0.8,5.9c-0.3,1.2-2.6,3.6-3.2,4.3 c0,0,0.6,1.7,1,2.9c0.4,1,0.5,1.7,0.5,1.7c-0.8-0.3-4.4-1.8-5.5-3c-1.3-1.3-1.3-2.8-1.6-4.4c-0.1-0.5-0.4-3.6-0.3-4.3 c0,0,1.9,1.3,2.9,2.5c1.1,1.2,1.8,2.4,1.8,2.4c-0.1-0.5-0.2-1-0.2-1.3c-0.1-1,0.5-1.7,0.4-1.9c0,0-0.1-0.2-0.3-0.8 c-0.5-1.1-3.2-3-3.8-4.2c-0.3-0.5-1-1.6-0.6-7.2c0,0,2.1,2.2,3.2,3.6c0.7,0.9,1.4,2.3,1.4,2.3c-0.2-2,0.6-3,0.5-3 c0-0.1-0.1-0.8-0.4-1.3c-1-1.7-3.3-2.7-3.6-4.8c-0.3-1.6,0.4-2.9,4-4.3C5.9,5.9,5.5,8,5.4,10c1.7-1.5,1.5-5.3,2.4-6.7 c0.3-0.5,0.7-1,2-1.6c1.2-0.5,2-0.9,3.2-1c0,0.1-0.7,2.5-1.2,3.6c-0.6,1.4-1.5,1.9-1.5,2c1.4-0.4,2.4-1,3.4-2.4 c0.3-0.4,0.7-0.9,1.1-1.6C15,1.8,15.4,1.1,16.2,0.7"></path>
+                                            <path fill="#c3c3c3" d="M99.2,21.3c-0.5-1.1-1.3-2-2.3-2.8c-1-0.8-2.8-1.9-5.5-3.4c-3.3-1.8-5.4-3.3-6.3-4.3 c-0.6-0.7-0.9-1.6-0.9-2.5c0-1.2,0.5-2.2,1.4-3.1c1-0.9,2.2-1.4,3.7-1.4c1.3,0,2.6,0.3,3.8,1c1.2,0.7,2.2,1.6,2.8,2.8 c0.7,1.2,1.1,2.7,1.4,4.7h0.8V2.1h-0.8c-0.1,0.7-0.3,1.1-0.6,1.4c-0.2,0.2-0.5,0.3-0.9,0.3c-0.3,0-0.9-0.2-1.7-0.5 c-1.7-0.8-3.3-1.2-4.9-1.2c-2.5,0-4.5,0.8-6.1,2.3c-1.6,1.5-2.4,3.4-2.4,5.5c0,1.2,0.3,2.3,0.8,3.3c0.5,1,1.3,1.9,2.4,2.8 c1,0.8,2.8,2,5.3,3.4c2.5,1.4,4,2.3,4.5,2.8c0.8,0.6,1.4,1.3,1.8,2.1c0.4,0.7,0.6,1.5,0.6,2.2c0,1.3-0.5,2.4-1.5,3.4 c-1,1-2.4,1.4-4.2,1.4c-1.5,0-2.9-0.3-4.2-1c-1.3-0.7-2.2-1.6-2.9-2.6c-0.6-1.1-1.1-2.6-1.5-4.7h-0.8v9.4H82 c0.1-0.3,0.2-0.5,0.3-0.7c0.2-0.2,0.5-0.3,0.8-0.3c0.4,0,1.2,0.2,2.6,0.7c1.4,0.5,2.3,0.7,2.7,0.8c0.7,0.1,1.5,0.2,2.4,0.2 c2.7,0,4.9-0.8,6.6-2.4c1.7-1.6,2.5-3.5,2.5-5.8C100,23.5,99.7,22.4,99.2,21.3 M62.2,17.5c0.3,0,0.5,0,0.7,0c0.2,0,0.4,0,0.5,0 c2.7,0,4.7-0.6,6.1-1.9c1.4-1.2,2-2.8,2-4.7c0-1.9-0.5-3.4-1.6-4.6c-1.1-1.2-2.6-1.8-4.4-1.8c-0.8,0-1.9,0.1-3.3,0.4V17.5z M64.4,2.9c3,0,5.2,0.2,6.6,0.7c1.4,0.5,2.6,1.3,3.6,2.6c1,1.2,1.5,2.7,1.5,4.5c0,1.8-0.6,3.4-1.7,4.8c-1.1,1.4-2.9,2.3-5.2,2.9 l5.8,8.6c1.3,2,2.5,3.3,3.4,3.9c1,0.6,1.8,1,3.3,1.3l0,0.7h-7.1l-9.5-14c-0.7,0-1.3,0-1.7,0c-0.2,0-0.4,0-0.6,0c-0.2,0-0.4,0-0.6,0 v8.7c0,1.9,0.2,3.1,0.6,3.5c0.5,0.6,1.3,1,2.4,1h1.1v0.8h-12v-0.8h1.1c1.2,0,2-0.4,2.5-1.2c0.3-0.5,0.4-1.5,0.4-3.3V8.2 c0-1.9-0.2-3.1-0.6-3.5c-0.5-0.6-1.3-1-2.4-1h-1.1V2.9H64.4z M52.9,2.9v0.8h-1.1c-1.2,0-2.1,0.4-2.6,1.1c-0.4,0.5-0.5,1.6-0.5,3.4 v19.4c0,1.5,0.1,2.5,0.3,3c0.1-0.4,0.4-0.7,0.9-0.9c0.6-0.4,1.3-0.5,2-0.5h1.1v0.8H40.4v-0.8h1c1.2,0,2.1-0.4,2.6-1.1 c0.3-0.5,0.5-1.6,0.5-3.4V8.2c0-1.5-0.1-2.5-0.3-3c-0.1-0.4-0.4-0.7-0.9-1c-0.6-0.4-1.3-0.5-2-0.5h-1V2.9H52.9z"></path>
+                                        </svg>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="color: #c3c3c3; font-size: 12px; line-height: 1.4;">
+                                        Internal Revenue Service<br>
+                                        United States Department of the Treasury<br>
+                                        <a href="#" style="color: #c3c3c3; text-decoration: none;">Privacy Policy</a> | 
+                                        <a href="#" style="color: #c3c3c3; text-decoration: none;">Contact Us</a> | 
+                                        <a href="#" style="color: #c3c3c3; text-decoration: none;">Help</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                </table>
+                
+            </td>
+        </tr>
+    </table>
+    
+</body>
+</html>

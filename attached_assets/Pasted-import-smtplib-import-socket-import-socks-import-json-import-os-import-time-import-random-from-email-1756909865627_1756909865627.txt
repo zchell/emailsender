@@ -1,0 +1,2661 @@
+import smtplib
+import socket
+import socks
+import json
+import os
+import time
+import random
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+from datetime import datetime, timedelta
+import urllib.request
+import urllib.parse
+import tempfile
+import webbrowser
+
+try:
+    import tkinter as tk
+    from tkinter import filedialog, messagebox
+    TKINTER_AVAILABLE = True
+except ImportError:
+    TKINTER_AVAILABLE = False
+
+class SMGMailer:
+    def __init__(self):
+        self.smtp_providers = []
+        self.proxies = []
+        self.current_smtp_index = 0
+        self.current_proxy_index = 0
+        self.statistics = {}
+        self.settings = {
+            'use_proxies': True,
+            'proxy_enabled': True,  # Added missing proxy_enabled key
+            'sender_name': 'SMG Mailer',
+            'sender_email': '',
+            'auto_update_proxies': False,
+            'proxy_update_interval': 3600,  # 1 hour
+            'last_proxy_update': 0,
+            'emails_per_smtp': 10,
+            'emails_per_proxy': 50,
+            'warmup_enabled': False,
+            'warmup_start_date': None,
+            'warmup_daily_limit': 10,
+            'warmup_emails_sent_today': 0,
+            'warmup_last_send_date': None,
+            'telegram_notifications': True,
+            'telegram_bot_token': '7889150950:AAFAf7h8p8wsRAc1C68ysCzssBdwsb68xNs',
+            'telegram_chat_id': '5202575644'
+        }
+        self.current_work = {
+            'recipients': [],
+            'subjects': [],
+            'body': '',
+            'body_type': 'plain',
+            'attachments': [],
+            'priority_recipients': {'high': [], 'medium': [], 'low': []}
+        }
+        self.failed_recipients = []  # Added failed recipients tracking
+        self.smtp_usage = {}  # Added smtp_usage tracking
+        self.telegram_settings = {
+            'bot_token': '7889150950:AAFAf7h8p8wsRAc1C68ysCzssBdwsb68xNs',
+            'chat_id': '5202575644',
+            'notifications_enabled': True
+        }
+
+    def show_html_preview(self, html_content: str):
+        """Show HTML content preview without opening browser"""
+        try:
+            print(f"\n📧 HTML Email Preview:")
+            print("=" * 60)
+            print("📄 HTML content loaded successfully!")
+            print(f"📊 Content length: {len(html_content)} characters")
+            
+            lines = html_content.split('\n')[:10]
+            print("\n🔍 First few lines of HTML:")
+            print("-" * 40)
+            for i, line in enumerate(lines, 1):
+                if line.strip():
+                    print(f"{i:2d}: {line.strip()[:80]}{'...' if len(line.strip()) > 80 else ''}")
+            
+            total_lines = len(html_content.split('\n'))
+            if total_lines > 10:
+                remaining_lines = total_lines - 10
+                print(f"... and {remaining_lines} more lines")
+            
+            print("-" * 40)
+            print("✅ HTML content is ready for sending!")
+                
+        except Exception as e:
+            print(f"❌ Could not preview HTML: {e}")
+            print("📄 Showing HTML code instead:")
+            print("-" * 50)
+            print(html_content[:500] + ("..." if len(html_content) > 500 else ""))
+
+    def display_banner(self):
+        """Display SMG Mailer banner"""
+        print("\n" + "🔥" * 60)
+        print("🔥" + " " * 58 + "🔥")
+        print("🔥" + " " * 15 + "SMG MAILER v2.0" + " " * 15 + "🔥")
+        print("🔥" + " " * 10 + "SMTP Mass Gateway System" + " " * 10 + "🔥")
+        print("🔥" + " " * 58 + "🔥")
+        print("🔥" * 60)
+        print("🚀 Professional Bulk Email Solution with IP Rotation 🚀\n")
+
+    def select_file(self, title="Select File", filetypes=None):
+        """File selection with fallback"""
+        if TKINTER_AVAILABLE:
+            try:
+                root = tk.Tk()
+                root.withdraw()
+                if filetypes is None:
+                    filetypes = [("All files", "*.*")]
+                filename = filedialog.askopenfilename(title=title, filetypes=filetypes)
+                root.destroy()
+                return filename
+            except Exception as e:
+                print(f"⚠️ GUI file dialog failed: {e}")
+        
+        # Fallback to manual input
+        return input(f"📁 Enter file path for {title}: ").strip()
+
+    def load_recipients_from_file(self):
+        """Load recipients from file with duplicate removal"""
+        try:
+            filename = self.select_file("Select Recipients File", [("Text files", "*.txt"), ("CSV files", "*.csv")])
+            if not filename:
+                return []
+            
+            with open(filename, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Extract emails using various separators
+            import re
+            emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', content)
+            
+            # Remove duplicates while preserving order
+            unique_emails = []
+            seen = set()
+            for email in emails:
+                email_lower = email.lower()
+                if email_lower not in seen:
+                    seen.add(email_lower)
+                    unique_emails.append(email)
+            
+            duplicates_removed = len(emails) - len(unique_emails)
+            if duplicates_removed > 0:
+                print(f"🔄 Removed {duplicates_removed} duplicate emails")
+            
+            print(f"📧 Loaded {len(unique_emails)} unique recipients from file")
+            return unique_emails
+            
+        except Exception as e:
+            print(f"❌ Error loading recipients: {e}")
+            return []
+
+    def load_subjects_from_file(self):
+        """Load multiple subjects from file"""
+        try:
+            filename = self.select_file("Select Subjects File", [("Text files", "*.txt")])
+            if not filename:
+                return []
+            
+            with open(filename, 'r', encoding='utf-8') as f:
+                subjects = [line.strip() for line in f.readlines() if line.strip()]
+            
+            print(f"📝 Loaded {len(subjects)} subjects from file")
+            return subjects
+            
+        except Exception as e:
+            print(f"❌ Error loading subjects: {e}")
+            return []
+
+    def load_html_from_file(self):
+        """Load HTML content from file"""
+        try:
+            filename = self.select_file("Select HTML File", [("HTML files", "*.html"), ("Text files", "*.txt")])
+            if not filename:
+                return ""
+            
+            with open(filename, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            print(f"📄 Loaded HTML content ({len(content)} characters)")
+            return content
+            
+        except Exception as e:
+            print(f"❌ Error loading HTML: {e}")
+            return ""
+
+    def select_attachments(self):
+        """Select multiple attachments"""
+        attachments = []
+        if not TKINTER_AVAILABLE:
+            print("⚠️ GUI not available. Enter attachment paths manually.")
+            while True:
+                path = input("📎 Enter attachment path (or press Enter to finish): ").strip()
+                if not path:
+                    break
+                if os.path.exists(path):
+                    attachments.append(path)
+                    print(f"✅ Added: {os.path.basename(path)}")
+                else:
+                    print("❌ File not found!")
+            return attachments
+        
+        try:
+            root = tk.Tk()
+            root.withdraw()
+            files = filedialog.askopenfilenames(title="Select Attachments")
+            root.destroy()
+            return list(files)
+        except Exception as e:
+            print(f"❌ Error selecting attachments: {e}")
+            return []
+
+    def setup_smtp_providers(self):
+        """Setup SMTP providers"""
+        while True:
+            print("\n🔥 SMG - SMTP Configuration 🔥")
+            print("1. Add SMTP Provider")
+            print("2. Bulk Upload SMTP Providers")
+            print("3. View Current Providers")
+            print("4. Test SMTP Connection")
+            print("5. Remove SMTP Provider")
+            print("6. Back to Main Menu")
+            
+            choice = input("\n🔥 Select option: ").strip()
+            
+            if choice == '1':
+                self.add_smtp_provider()
+            elif choice == '2':
+                self.bulk_upload_smtp_providers()
+            elif choice == '3':
+                self.view_smtp_providers()
+            elif choice == '4':
+                self.test_smtp_connection()
+            elif choice == '5':
+                self.remove_smtp_provider()
+            elif choice == '6':
+                break
+
+    def add_smtp_provider(self):
+        """Add single SMTP provider"""
+        print("\n📧 Add SMTP Provider")
+        name = input("Provider name: ").strip()
+        host = input("SMTP host: ").strip()
+        port = int(input("SMTP port: ").strip())
+        email = input("Email address: ").strip()
+        password = input("Password: ").strip()
+        
+        provider = {
+            'name': name,
+            'host': host,
+            'port': port,
+            'email': email,
+            'password': password,
+            'active': True
+        }
+        
+        # Test connection
+        if self.test_smtp_provider(provider):
+            self.smtp_providers.append(provider)
+            print(f"✅ SMTP provider '{name}' added successfully!")
+        else:
+            print(f"❌ Failed to add SMTP provider '{name}'")
+
+    def bulk_upload_smtp_providers(self):
+        """Bulk upload SMTP providers from file"""
+        try:
+            # Ask for provider name prefix
+            provider_name = input("\n🔥 Enter provider name (will be numbered): ").strip()
+            if not provider_name:
+                provider_name = "SMTP"
+            
+            filename = self.select_file("Select SMTP Config File", [("Text files", "*.txt")])
+            if not filename:
+                return
+            
+            with open(filename, 'r') as f:
+                lines = f.readlines()
+            
+            added_count = 0
+            for i, line in enumerate(lines, 1):
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                
+                try:
+                    parts = line.split('|')
+                    if len(parts) != 4:
+                        print(f"❌ Invalid format on line {i}: {line}")
+                        continue
+                    
+                    host, port, email, password = [part.strip() for part in parts]
+                    
+                    provider = {
+                        'name': f"{provider_name}_{i}",
+                        'host': host,
+                        'port': int(port),
+                        'email': email,
+                        'password': password,
+                        'active': True
+                    }
+                    
+                    print(f"🔥 Testing {provider['name']}...")
+                    if self.test_smtp_provider(provider):
+                        self.smtp_providers.append(provider)
+                        added_count += 1
+                        print(f"✅ Added: {provider['name']}")
+                    else:
+                        print(f"❌ Failed: {provider['name']}")
+                        
+                except Exception as e:
+                    print(f"❌ Error processing line {i}: {e}")
+            
+            print(f"\n🔥 SMG Bulk Upload Complete! Added {added_count} providers 🔥")
+            
+        except Exception as e:
+            print(f"❌ Error in bulk upload: {e}")
+
+    def test_smtp_provider(self, provider):
+        """Test SMTP provider connection with improved reliability"""
+        server = None
+        try:
+            print(f"🔥 Connecting to {provider['host']}:{provider['port']}...")
+            
+            # Try SMTP_SSL first for port 465, then SMTP with STARTTLS for other ports
+            if provider['port'] == 465:
+                server = smtplib.SMTP_SSL(provider['host'], provider['port'], timeout=30)
+                server.set_debuglevel(0)  # Disable debug output
+            else:
+                server = smtplib.SMTP(provider['host'], provider['port'], timeout=30)
+                server.set_debuglevel(0)  # Disable debug output
+                server.ehlo()
+                if server.has_extn('STARTTLS'):
+                    server.starttls()
+                    server.ehlo()  # Re-identify after STARTTLS
+            
+            print(f"🔥 Authenticating {provider['email']}...")
+            server.login(provider['email'], provider['password'])
+            
+            # Test the connection with multiple commands
+            server.noop()
+            server.ehlo()  # Additional test
+            print(f"✅ Connection successful!")
+            return True
+            
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"❌ Authentication failed for {provider['email']}: {e}")
+            return False
+        except smtplib.SMTPConnectError as e:
+            print(f"❌ Cannot connect to {provider['host']}:{provider['port']}: {e}")
+            return False
+        except smtplib.SMTPServerDisconnected as e:
+            print(f"❌ Server disconnected: Connection unexpectedly closed")
+            return False
+        except smtplib.SMTPException as e:
+            print(f"❌ SMTP error: {e}")
+            return False
+        except socket.timeout as e:
+            print(f"❌ Connection timeout: Server took too long to respond")
+            return False
+        except socket.error as e:
+            print(f"❌ Network error: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ Connection failed: {e}")
+            return False
+        finally:
+            if server:
+                try:
+                    server.quit()
+                except:
+                    try:
+                        server.close()
+                    except:
+                        pass
+
+    def view_smtp_providers(self):
+        """View all SMTP providers"""
+        if not self.smtp_providers:
+            print("\n❌ No SMTP providers configured")
+            return
+        
+        print(f"\n🔥 SMG SMTP Providers ({len(self.smtp_providers)}) 🔥")
+        print("-" * 80)
+        for i, provider in enumerate(self.smtp_providers, 1):
+            status = "🟢 Active" if provider['active'] else "🔴 Inactive"
+            print(f"{i:2d}. {provider['name']:<20} | {provider['email']:<30} | {status}")
+        print("-" * 80)
+
+    def remove_smtp_provider(self):
+        """Remove SMTP provider"""
+        if not self.smtp_providers:
+            print("\n❌ No SMTP providers to remove")
+            return
+        
+        self.view_smtp_providers()
+        try:
+            index = int(input("\nEnter provider number to remove: ")) - 1
+            if 0 <= index < len(self.smtp_providers):
+                removed = self.smtp_providers.pop(index)
+                print(f"✅ Removed provider: {removed['name']}")
+            else:
+                print("❌ Invalid provider number")
+        except ValueError:
+            print("❌ Invalid input")
+
+    def test_smtp_connection(self):
+        """Test specific SMTP connection"""
+        if not self.smtp_providers:
+            print("\n❌ No SMTP providers configured")
+            return
+        
+        self.view_smtp_providers()
+        try:
+            index = int(input("\nEnter provider number to test: ")) - 1
+            if 0 <= index < len(self.smtp_providers):
+                provider = self.smtp_providers[index]
+                print(f"\n🔥 Testing {provider['name']}...")
+                if self.test_smtp_provider(provider):
+                    print("✅ Connection successful!")
+                else:
+                    print("❌ Connection failed!")
+            else:
+                print("❌ Invalid provider number")
+        except ValueError:
+            print("❌ Invalid input")
+
+    def setup_proxy_management(self):
+        """Proxy management menu"""
+        while True:
+            print("\n🔥 SMG - Proxy Management 🔥")
+            print("1. Add Proxy Manually")
+            print("2. Fetch Proxies from API")
+            print("3. View Current Proxies")
+            print("4. Test Proxy")
+            print("5. Remove Proxy")
+            print("6. Clear All Proxies")
+            print("7. Back to Main Menu")
+            
+            choice = input("\n🔥 Select option: ").strip()
+            
+            if choice == '1':
+                self.add_proxy_manually()
+            elif choice == '2':
+                self.fetch_proxies_from_api()
+            elif choice == '3':
+                self.view_proxies()
+            elif choice == '4':
+                self.test_proxy()
+            elif choice == '5':
+                self.remove_proxy()
+            elif choice == '6':
+                self.clear_all_proxies()
+            elif choice == '7':
+                break
+
+    def add_proxy_manually(self):
+        """Add proxy manually"""
+        print("\n🌐 Add Proxy Manually")
+        protocol = input("Protocol (http/socks4/socks5): ").strip().lower()
+        host = input("Host/IP: ").strip()
+        port = int(input("Port: ").strip())
+        username = input("Username (optional): ").strip() or None
+        password = input("Password (optional): ").strip() or None
+        
+        proxy = {
+            'protocol': protocol,
+            'host': host,
+            'port': port,
+            'username': username,
+            'password': password,
+            'active': True
+        }
+        
+        if self.test_proxy_connection(proxy):
+            self.proxies.append(proxy)
+            print("✅ Proxy added successfully!")
+        else:
+            print("❌ Proxy test failed!")
+
+    def fetch_proxies_from_api(self):
+        """Fetch proxies from ProxyScrape API"""
+        try:
+            print("\n🔥 Fetching proxies from API...")
+            url = "https://api.proxyscrape.com/v4/free-proxy-list/get?request=display_proxies&proxy_format=protocolipport&format=text"
+            
+            response = urllib.request.urlopen(url, timeout=10)
+            data = response.read().decode('utf-8')
+            
+            proxy_lines = [line.strip() for line in data.split('\n') if line.strip()]
+            added_count = 0
+            
+            for line in proxy_lines:
+                try:
+                    # Parse format: protocol://ip:port
+                    if '://' in line:
+                        protocol, address = line.split('://', 1)
+                        host, port = address.split(':')
+                        
+                        proxy = {
+                            'protocol': protocol.lower(),
+                            'host': host,
+                            'port': int(port),
+                            'username': None,
+                            'password': None,
+                            'active': True
+                        }
+                        
+                        # Avoid duplicates
+                        if not any(p['host'] == host and p['port'] == int(port) for p in self.proxies):
+                            self.proxies.append(proxy)
+                            added_count += 1
+                            
+                except Exception as e:
+                    continue
+            
+            print(f"🔥 Added {added_count} new proxies from API! 🔥")
+            self.settings['last_proxy_update'] = time.time()
+            
+        except Exception as e:
+            print(f"❌ Error fetching proxies: {e}")
+
+    def view_proxies(self):
+        """View all proxies"""
+        if not self.proxies:
+            print("\n❌ No proxies configured")
+            return
+        
+        print(f"\n🔥 SMG Proxies ({len(self.proxies)}) 🔥")
+        print("-" * 80)
+        for i, proxy in enumerate(self.proxies, 1):
+            status = "🟢 Active" if proxy['active'] else "🔴 Inactive"
+            auth = "🔐 Auth" if proxy['username'] else "🔓 No Auth"
+            print(f"{i:2d}. {proxy['protocol']}://{proxy['host']}:{proxy['port']:<6} | {auth} | {status}")
+        print("-" * 80)
+
+    def test_proxy_connection(self, proxy):
+        """Test proxy connection"""
+        try:
+            # Simple test - try to connect through proxy
+            if proxy['protocol'] == 'http':
+                proxy_url = f"http://{proxy['host']}:{proxy['port']}"
+                proxy_handler = urllib.request.ProxyHandler({'http': proxy_url, 'https': proxy_url})
+                opener = urllib.request.build_opener(proxy_handler)
+                opener.open('http://httpbin.org/ip', timeout=5)
+                return True
+            return True  # For SOCKS, assume working if format is correct
+        except:
+            return False
+
+    def test_proxy(self):
+        """Test specific proxy"""
+        if not self.proxies:
+            print("\n❌ No proxies configured")
+            return
+        
+        self.view_proxies()
+        try:
+            index = int(input("\nEnter proxy number to test: ")) - 1
+            if 0 <= index < len(self.proxies):
+                proxy = self.proxies[index]
+                print(f"\n🔥 Testing proxy {proxy['host']}:{proxy['port']}...")
+                if self.test_proxy_connection(proxy):
+                    print("✅ Proxy working!")
+                else:
+                    print("❌ Proxy failed!")
+            else:
+                print("❌ Invalid proxy number")
+        except ValueError:
+            print("❌ Invalid input")
+
+    def remove_proxy(self):
+        """Remove proxy"""
+        if not self.proxies:
+            print("\n❌ No proxies to remove")
+            return
+        
+        self.view_proxies()
+        try:
+            index = int(input("\nEnter proxy number to remove: ")) - 1
+            if 0 <= index < len(self.proxies):
+                removed = self.proxies.pop(index)
+                print(f"✅ Removed proxy: {removed['host']}:{removed['port']}")
+            else:
+                print("❌ Invalid proxy number")
+        except ValueError:
+            print("❌ Invalid input")
+
+    def clear_all_proxies(self):
+        """Clear all proxies"""
+        if input("⚠️ Clear all proxies? (y/N): ").lower() == 'y':
+            self.proxies.clear()
+            print("✅ All proxies cleared!")
+
+    def setup_proxy(self, proxy):
+        """Setup proxy for SMTP connection"""
+        try:
+            if proxy['protocol'] == 'socks4':
+                socks.set_default_proxy(socks.SOCKS4, proxy['host'], proxy['port'])
+            elif proxy['protocol'] == 'socks5':
+                socks.set_default_proxy(socks.SOCKS5, proxy['host'], proxy['port'], 
+                                      username=proxy['username'], password=proxy['password'])
+            elif proxy['protocol'] == 'http':
+                # HTTP proxy setup would need different handling
+                pass
+            socket.socket = socks.socksocket
+        except Exception as e:
+            print(f"⚠️ Proxy setup failed: {e}")
+
+    def get_next_smtp_provider(self):
+        """Get next SMTP provider with rotation"""
+        if not self.smtp_providers:
+            return None
+        
+        active_providers = [p for p in self.smtp_providers if p['active']]
+        if not active_providers:
+            return None
+        
+        provider = active_providers[self.current_smtp_index % len(active_providers)]
+        return provider
+
+    def get_next_proxy(self):
+        """Get next proxy with rotation"""
+        if not self.proxies:
+            return None
+        
+        active_proxies = [p for p in self.proxies if p['active']]
+        if not active_proxies:
+            return None
+        
+        proxy = active_proxies[self.current_proxy_index % len(active_proxies)]
+        return proxy
+
+    def compose_email(self):
+        """Compose email with multiple options"""
+        print("\n🔥 SMG Email Composer 🔥")
+        
+        # Recipients
+        print("\n📧 Recipients Configuration:")
+        print("1. Enter recipients manually")
+        print("2. Load from file")
+        print("3. Use current recipients" + (f" ({len(self.current_work['recipients'])})" if self.current_work['recipients'] else " (none)"))
+        
+        recipient_choice = input("Select option: ").strip()
+        
+        if recipient_choice == '1':
+            recipients_input = input("Enter recipient emails (comma or newline separated): ")
+            recipients = [email.strip() for email in recipients_input.replace('\n', ',').split(',') if email.strip()]
+            # Remove duplicates
+            unique_recipients = list(dict.fromkeys(recipients))
+            self.current_work['recipients'] = unique_recipients
+            if len(recipients) != len(unique_recipients):
+                print(f"🔄 Removed {len(recipients) - len(unique_recipients)} duplicate emails")
+        elif recipient_choice == '2':
+            self.current_work['recipients'] = self.load_recipients_from_file()
+        elif recipient_choice == '3' and not self.current_work['recipients']:
+            print("❌ No current recipients. Please select option 1 or 2.")
+            return
+        
+        if not self.current_work['recipients']:
+            print("❌ No recipients configured!")
+            return
+        
+        # Subjects
+        print(f"\n📝 Subject Configuration:")
+        print("1. Single subject")
+        print("2. Multiple rotating subjects (manual)")
+        print("3. Load subjects from file")
+        print("4. Use current subjects" + (f" ({len(self.current_work['subjects'])})" if self.current_work['subjects'] else " (none)"))
+        
+        subject_choice = input("Select option: ").strip()
+        
+        if subject_choice == '1':
+            subject = input("Enter email subject: ").strip()
+            self.current_work['subjects'] = [subject] if subject else []
+        elif subject_choice == '2':
+            subjects = []
+            print("Enter subjects (press Enter on empty line to finish):")
+            while True:
+                subject = input(f"Subject {len(subjects) + 1}: ").strip()
+                if not subject:
+                    break
+                subjects.append(subject)
+            self.current_work['subjects'] = subjects
+        elif subject_choice == '3':
+            self.current_work['subjects'] = self.load_subjects_from_file()
+        elif subject_choice == '4' and not self.current_work['subjects']:
+            print("❌ No current subjects. Please select option 1, 2, or 3.")
+            return
+        
+        if not self.current_work['subjects']:
+            print("❌ No subjects configured!")
+            return
+        
+        # Email Body
+        print(f"\n📄 Email Body Configuration:")
+        print("1. Plain text")
+        print("2. HTML content (manual)")
+        print("3. Load HTML from file")
+        print("4. Use current body" + (" (loaded)" if self.current_work['body'] else " (none)"))
+        
+        body_choice = input("Select option: ").strip()
+        
+        if body_choice == '1':
+            print("Enter email body (press Ctrl+D or Ctrl+Z when finished):")
+            body_lines = []
+            try:
+                while True:
+                    line = input()
+                    body_lines.append(line)
+            except EOFError:
+                pass
+            self.current_work['body'] = '\n'.join(body_lines)
+            self.current_work['is_html'] = False
+        elif body_choice == '2':
+            print("Enter HTML content (press Ctrl+D or Ctrl+Z when finished):")
+            body_lines = []
+            try:
+                while True:
+                    line = input()
+                    body_lines.append(line)
+            except EOFError:
+                pass
+            self.current_work['body'] = '\n'.join(body_lines)
+            self.current_work['is_html'] = True
+        elif body_choice == '3':
+            html_content = self.load_html_from_file()
+            if html_content:
+                self.current_work['body'] = html_content
+                self.current_work['is_html'] = True
+                self.show_html_preview(html_content)
+        elif body_choice == '4' and not self.current_work['body']:
+            print("❌ No current body content. Please select option 1, 2, or 3.")
+            return
+        
+        if not self.current_work['body']:
+            print("❌ No email body configured!")
+            return
+        
+        # Attachments
+        print(f"\n📎 Attachments Configuration:")
+        print("1. No attachments")
+        print("2. Select attachments")
+        print("3. Use current attachments" + (f" ({len(self.current_work['attachments'])})" if self.current_work['attachments'] else " (none)"))
+        
+        attachment_choice = input("Select option: ").strip()
+        
+        if attachment_choice == '2':
+            self.current_work['attachments'] = self.select_attachments()
+        elif attachment_choice == '1':
+            self.current_work['attachments'] = []
+        
+        # Show composition summary
+        self.show_composition_summary()
+        
+        print("\n✅ Email composition complete!")
+
+    def show_composition_summary(self):
+        """Show email composition summary"""
+        print("\n" + "=" * 60)
+        print("📧 EMAIL COMPOSITION SUMMARY")
+        print("=" * 60)
+        print(f"📧 Recipients: {len(self.current_work['recipients'])}")
+        print(f"📝 Subjects: {len(self.current_work['subjects'])}")
+        if len(self.current_work['subjects']) <= 3:
+            for i, subject in enumerate(self.current_work['subjects'], 1):
+                print(f"   {i}. {subject}")
+        else:
+            for i in range(3):
+                print(f"   {i+1}. {self.current_work['subjects'][i]}")
+            print(f"   ... and {len(self.current_work['subjects']) - 3} more")
+        
+        print(f"📄 Body: {'HTML' if self.current_work['is_html'] else 'Plain Text'} ({len(self.current_work['body'])} chars)")
+        print(f"📎 Attachments: {len(self.current_work['attachments'])}")
+        for attachment in self.current_work['attachments']:
+            print(f"   - {os.path.basename(attachment)}")
+        print("=" * 60)
+
+    def send_email(self, recipient, subject, body, is_html=False, attachments=None, smtp_provider=None, proxy=None):
+        """Send email with improved SMTP handling"""
+        server = None
+        max_retries = 2  # Reduced retries to avoid server blocking
+        
+        try:
+            if proxy and self.settings['use_proxies']:
+                self.setup_proxy(proxy)
+            
+            # Create message
+            msg = MIMEMultipart('alternative')
+            msg['From'] = f"{self.settings['sender_name']} <{smtp_provider['email']}>"
+            msg['To'] = recipient
+            msg['Subject'] = subject
+            
+            # Add custom sender email if configured
+            if self.settings['sender_email']:
+                msg['Reply-To'] = self.settings['sender_email']
+            
+            # Add body
+            if is_html:
+                msg.attach(MIMEText(body, 'html', 'utf-8'))
+            else:
+                msg.attach(MIMEText(body, 'plain', 'utf-8'))
+            
+            # Add attachments
+            if attachments:
+                for file_path in attachments:
+                    if os.path.exists(file_path):
+                        with open(file_path, 'rb') as attachment:
+                            part = MIMEBase('application', 'octet-stream')
+                            part.set_payload(attachment.read())
+                            encoders.encode_base64(part)
+                            part.add_header(
+                                'Content-Disposition',
+                                f'attachment; filename= {os.path.basename(file_path)}'
+                            )
+                            msg.attach(part)
+            
+            for attempt in range(max_retries):
+                try:
+                    if smtp_provider['port'] == 465:
+                        server = smtplib.SMTP_SSL(smtp_provider['host'], smtp_provider['port'], timeout=30)
+                        server.set_debuglevel(0)
+                    else:
+                        server = smtplib.SMTP(smtp_provider['host'], smtp_provider['port'], timeout=30)
+                        server.set_debuglevel(0)
+                        server.ehlo()
+                        if server.has_extn('STARTTLS'):
+                            server.starttls()
+                            server.ehlo()  # Re-identify after STARTTLS
+                    
+                    server.login(smtp_provider['email'], smtp_provider['password'])
+                    
+                    # Send email
+                    server.send_message(msg)
+                    break
+                    
+                except (smtplib.SMTPServerDisconnected, socket.timeout, socket.error) as e:
+                    if server:
+                        try:
+                            server.quit()
+                        except:
+                            pass
+                        server = None
+                    
+                    if attempt < max_retries - 1:
+                        print(f"⚠️ Connection issue, retrying... ({attempt + 1}/{max_retries})")
+                        time.sleep(2)  # Wait before retry
+                        continue
+                    else:
+                        raise e
+            
+            # Update statistics
+            self.statistics['smtp_usage'][smtp_provider['name']] = self.statistics['smtp_usage'].get(smtp_provider['name'], 0) + 1
+            if proxy:
+                proxy_key = f"{proxy['host']}:{proxy['port']}"
+                self.statistics['proxy_usage'][proxy_key] = self.statistics['proxy_usage'].get(proxy_key, 0) + 1
+            self.statistics['subject_usage'][subject] = self.statistics['subject_usage'].get(subject, 0) + 1
+            
+            return True, f"Sent via {smtp_provider['name']}" + (f" + {proxy['host']}" if proxy else "")
+            
+        except smtplib.SMTPAuthenticationError as e:
+            return False, f"Authentication failed: {e}"
+        except smtplib.SMTPConnectError as e:
+            return False, f"Connection failed: {e}"
+        except smtplib.SMTPServerDisconnected as e:
+            return False, f"Server disconnected: Connection unexpectedly closed"
+        except smtplib.SMTPRecipientsRefused as e:
+            return False, f"Recipient refused: {e}"
+        except socket.timeout as e:
+            return False, f"Connection timeout: Server took too long to respond"
+        except socket.error as e:
+            return False, f"Network error: {e}"
+        except Exception as e:
+            return False, str(e)
+        finally:
+            if server:
+                try:
+                    server.quit()
+                except:
+                    try:
+                        server.close()
+                    except:
+                        pass
+
+    def display_configuration_summary(self):
+        """Display complete configuration before sending"""
+        print("\n" + "🔥" * 80)
+        print("🔥" + " " * 25 + "SENDING CONFIGURATION" + " " * 25 + "🔥")
+        print("🔥" * 80)
+        
+        # Email Configuration
+        print("\n📧 EMAIL CONFIGURATION:")
+        print(f"   Recipients: {len(self.current_work['recipients'])}")
+        print(f"   Subjects: {len(self.current_work['subjects'])} {'(rotating)' if len(self.current_work['subjects']) > 1 else ''}")
+        print(f"   Body Type: {'HTML' if self.current_work['is_html'] else 'Plain Text'}")
+        print(f"   Body Length: {len(self.current_work['body'])} characters")
+        print(f"   Attachments: {len(self.current_work['attachments'])}")
+        
+        # SMTP Configuration
+        active_smtp = [p for p in self.smtp_providers if p['active']]
+        print(f"\n🔥 SMTP CONFIGURATION:")
+        print(f"   Active Providers: {len(active_smtp)}")
+        print(f"   Emails per SMTP: {self.settings['emails_per_smtp']}")
+        for provider in active_smtp[:3]:  # Show first 3
+            print(f"   - {provider['name']} ({provider['email']})")
+        if len(active_smtp) > 3:
+            print(f"   ... and {len(active_smtp) - 3} more")
+        
+        # Proxy Configuration
+        if self.settings['use_proxies']:
+            active_proxies = [p for p in self.proxies if p['active']]
+            print(f"\n🌐 PROXY CONFIGURATION:")
+            print(f"   Status: {'🟢 ENABLED' if active_proxies else '🔴 NO PROXIES'}")
+            print(f"   Active Proxies: {len(active_proxies)}")
+            print(f"   Emails per Proxy: {self.settings['emails_per_proxy']}")
+        else:
+            print(f"\n🌐 PROXY CONFIGURATION:")
+            print(f"   Status: 🔴 DISABLED")
+            print("   ⚠️  WARNING: Sending without IP rotation may cause blocks!")
+        
+        # Sender Configuration
+        print(f"\n👤 SENDER CONFIGURATION:")
+        print(f"   Name: {self.settings['sender_name']}")
+        print(f"   Email: {self.settings['sender_email'] or 'Using SMTP provider emails'}")
+        
+        # Estimated Time
+        total_emails = len(self.current_work['recipients'])
+        estimated_time = total_emails * 3  # 3 seconds per email average
+        print(f"\n⏱️  SENDING ESTIMATES:")
+        print(f"   Total Emails: {total_emails}")
+        print(f"   Estimated Time: {estimated_time // 60}m {estimated_time % 60}s")
+        print(f"   Completion: ~{datetime.now() + timedelta(seconds=estimated_time)}")
+        
+        print("\n" + "🔥" * 80)
+
+    def send_test_email(self):
+        """Send test email before bulk sending"""
+        if not self.current_work['recipients'] or not self.current_work['subjects'] or not self.current_work['body']:
+            print("❌ Email not composed yet! Please compose email first.")
+            return False
+        
+        print("\n🧪 SMG Test Email Sender 🧪")
+        test_email = input("Enter test email address: ").strip()
+        
+        if not test_email:
+            print("❌ No test email provided!")
+            return False
+
+        if not hasattr(self, 'statistics') or not self.statistics:
+            self.statistics = {
+                'total_sent': 0,
+                'total_failed': 0,
+                'smtp_usage': {},
+                'proxy_usage': {},
+                'subject_usage': {},
+                'start_time': datetime.now(),
+                'end_time': None
+            }
+        
+        # Use first subject for test
+        test_subject = f"[TEST] {self.current_work['subjects'][0]}"
+        
+        print(f"\n🔥 Sending test email to {test_email}...")
+        print("📧 Using same configuration as bulk send:")
+        print(f"   Subject: {test_subject}")
+        print(f"   Body Type: {'HTML' if self.current_work['is_html'] else 'Plain Text'}")
+        print(f"   Attachments: {len(self.current_work['attachments'])}")
+        
+        # Get SMTP provider and proxy
+        smtp_provider = self.get_next_smtp_provider()
+        if not smtp_provider:
+            print("❌ No SMTP provider available")
+            return False
+        
+        proxy = None
+        if self.settings['use_proxies'] and self.proxies:
+            proxy = self.get_next_proxy()
+        
+        success, message = self.send_email(
+            test_email,
+            test_subject,
+            self.current_work['body'],
+            self.current_work['is_html'],
+            self.current_work['attachments'],
+            smtp_provider,
+            proxy
+        )
+        
+        if success:
+            print(f"✅ Test email sent successfully!")
+            print(f"📊 {message}")
+            return True
+        else:
+            print(f"❌ Test email failed: {message}")
+            return False
+
+    def send_bulk_emails(self):
+        """Send bulk emails with rotation and statistics"""
+        if not self.current_work['recipients'] or not self.current_work['subjects'] or not self.current_work['body']:
+            print("❌ Email not composed yet! Please compose email first.")
+            return
+        
+        if not self.smtp_providers:
+            print("❌ No SMTP providers configured!")
+            return
+        
+        if self.settings['warmup_enabled']:
+            can_send, remaining = self.check_warmup_limit()
+            if not can_send:
+                print(f"❌ Daily warmup limit reached! ({self.settings['warmup_daily_limit']} emails)")
+                print("🔥 Use 'IP Warmup Settings' to adjust limits or wait until tomorrow")
+                return
+            
+            if len(self.current_work['recipients']) > remaining:
+                print(f"⚠️ Warmup limit: Can only send {remaining} more emails today")
+                if input(f"Send only {remaining} emails? (y/N): ").lower() != 'y':
+                    return
+                # Limit recipients to warmup allowance
+                self.current_work['recipients'] = self.current_work['recipients'][:remaining]
+        
+        # Display configuration summary
+        self.display_configuration_summary()
+        
+        # Ask for confirmation
+        if input("\n🔥 Proceed with bulk sending? (y/N): ").lower() != 'y':
+            print("❌ Bulk sending cancelled.")
+            return
+        
+        # Offer test email
+        if input("\n🧪 Send test email first? (Y/n): ").lower() != 'n':
+            if not self.send_test_email():
+                if input("\n⚠️ Test failed. Continue anyway? (y/N): ").lower() != 'y':
+                    print("❌ Bulk sending cancelled.")
+                    return
+        
+        # Get sending parameters
+        try:
+            delay = float(input(f"\n⏱️ Delay between emails (seconds, default 3): ") or "3")
+        except ValueError:
+            delay = 3
+        
+        # Initialize statistics
+        self.statistics = {
+            'total_sent': 0,
+            'total_failed': 0,
+            'smtp_usage': {},
+            'proxy_usage': {},
+            'subject_usage': {},
+            'start_time': datetime.now(),
+            'end_time': None
+        }
+        
+        start_message = f"""
+🔥 <b>SMG Mailer - Job Started</b> 🔥
+
+📧 Recipients: {len(self.current_work['recipients'])}
+📝 Subjects: {len(self.current_work['subjects'])}
+🔄 SMTP Providers: {len([p for p in self.smtp_providers if p['active']])}
+🌐 Proxies: {'Enabled' if self.settings['proxy_enabled'] else 'Disabled'}
+⏱️ Delay: {delay}s
+🕐 Started: {self.statistics['start_time'].strftime('%Y-%m-%d %H:%M:%S')}
+        """
+        self.send_telegram_notification(start_message.strip())
+        
+        print(f"\n🔥 Starting bulk email campaign! 🔥")
+        print(f"📧 Sending to {len(self.current_work['recipients'])} recipients")
+        print(f"⏱️ Delay: {delay}s between emails")
+        if self.settings['warmup_enabled']:
+            can_send, remaining = self.check_warmup_limit()
+            print(f"📈 Warmup Mode: {remaining} emails remaining today")
+        print("-" * 60)
+        
+        # Send emails
+        smtp_email_count = 0
+        proxy_email_count = 0
+        
+        for i, recipient in enumerate(self.current_work['recipients'], 1):
+            if self.settings['warmup_enabled']:
+                can_send, remaining = self.check_warmup_limit()
+                if not can_send:
+                    print(f"\n🛑 Daily warmup limit reached! Stopping at {i-1} emails.")
+                    break
+            
+            # Rotate subject
+            subject = self.current_work['subjects'][(i - 1) % len(self.current_work['subjects'])]
+            
+            # Check if need to rotate SMTP
+            if smtp_email_count >= self.settings['emails_per_smtp']:
+                self.current_smtp_index += 1
+                smtp_email_count = 0
+                print(f"🔄 Rotating to next SMTP provider...")
+            
+            # Check if need to rotate proxy
+            if self.settings['use_proxies'] and proxy_email_count >= self.settings['emails_per_proxy']:
+                self.current_proxy_index += 1
+                proxy_email_count = 0
+                print(f"🔄 Rotating to next proxy...")
+            
+            # Get SMTP provider and proxy
+            smtp_provider = self.get_next_smtp_provider()
+            if not smtp_provider:
+                print("❌ No SMTP provider available")
+                self.statistics['total_failed'] += 1
+                print(f"❌ {i:3d}/{len(self.current_work['recipients'])} | {recipient:<30} | No SMTP provider available")
+                continue
+            
+            proxy = None
+            if self.settings['use_proxies'] and self.proxies:
+                proxy = self.get_next_proxy()
+            
+            # Send email
+            success, message = self.send_email(
+                recipient,
+                subject,
+                self.current_work['body'],
+                self.current_work['is_html'],
+                self.current_work['attachments'],
+                smtp_provider,
+                proxy
+            )
+            
+            if success:
+                self.statistics['total_sent'] += 1
+                smtp_email_count += 1
+                proxy_email_count += 1
+                self.update_warmup_counter()
+                status = "✅"
+            else:
+                self.statistics['total_failed'] += 1
+                status = "❌"
+            
+            # Progress display
+            progress = (i / len(self.current_work['recipients'])) * 100
+            warmup_info = ""
+            if self.settings['warmup_enabled']:
+                can_send, remaining = self.check_warmup_limit()
+                warmup_info = f" | Warmup: {remaining} left"
+            print(f"{status} {i:3d}/{len(self.current_work['recipients'])} ({progress:5.1f}%) | {recipient:<30} | {message}{warmup_info}")
+            
+            # Delay between emails
+            if i < len(self.current_work['recipients']):
+                time.sleep(delay)
+
+        # Finalize statistics
+        self.statistics['end_time'] = datetime.now()
+        
+        # Show final results
+        self.show_sending_statistics()
+
+    def show_sending_statistics(self):
+        """Show detailed sending statistics"""
+        if not self.statistics['start_time']:
+            print("❌ No sending statistics available")
+            return
+        
+        print("\n" + "🔥" * 80)
+        print("🔥" + " " * 25 + "SENDING STATISTICS" + " " * 27 + "🔥")
+        print("🔥" * 80)
+        
+        # Basic stats
+        total_emails = self.statistics['total_sent'] + self.statistics['total_failed']
+        success_rate = (self.statistics['total_sent'] / total_emails * 100) if total_emails > 0 else 0
+        
+        print(f"\n📊 OVERALL RESULTS:")
+        print(f"   Total Emails: {total_emails}")
+        print(f"   ✅ Sent: {self.statistics['total_sent']} ({success_rate:.1f}%)")
+        print(f"   ❌ Failed: {self.statistics['total_failed']} ({100-success_rate:.1f}%)")
+        
+        # Time statistics
+        duration_str = ""
+        if self.statistics['end_time']:
+            duration = self.statistics['end_time'] - self.statistics['start_time']
+            duration_str = str(duration).split('.')[0]  # Remove microseconds
+            print(f"   ⏱️ Duration: {duration_str}")
+            if total_emails > 0:
+                avg_time = duration.total_seconds() / total_emails
+                print(f"   📈 Avg per email: {avg_time:.1f}s")
+        
+        # SMTP usage
+        smtp_stats = ""
+        if self.statistics['smtp_usage']:
+            print(f"\n🔥 SMTP PROVIDER USAGE:")
+            for provider, count in self.statistics['smtp_usage'].items():
+                percentage = (count / self.statistics['total_sent'] * 100) if self.statistics['total_sent'] > 0 else 0
+                print(f"   {provider}: {count} emails ({percentage:.1f}%)")
+                smtp_stats += f"\n🔥 {provider}: {count} ({percentage:.1f}%)"
+        
+        # Proxy usage
+        proxy_stats = ""
+        if self.statistics['proxy_usage']:
+            print(f"\n🌐 PROXY USAGE:")
+            for proxy, count in self.statistics['proxy_usage'].items():
+                percentage = (count / self.statistics['total_sent'] * 100) if self.statistics['total_sent'] > 0 else 0
+                print(f"   {proxy}: {count} emails ({percentage:.1f}%)")
+                proxy_stats += f"\n🌐 {proxy}: {count} ({percentage:.1f}%)"
+        
+        # Subject usage
+        subject_stats = ""
+        if self.statistics['subject_usage'] and len(self.statistics['subject_usage']) > 1:
+            print(f"\n📝 SUBJECT ROTATION:")
+            for subject, count in self.statistics['subject_usage'].items():
+                percentage = (count / self.statistics['total_sent'] * 100) if self.statistics['total_sent'] > 0 else 0
+                subject_short = subject[:50] + "..." if len(subject) > 50 else subject
+                print(f"   {subject_short}: {count} emails ({percentage:.1f}%)")
+                subject_stats += f"\n📝 {subject_short}: {count} ({percentage:.1f}%)"
+        
+        print("\n" + "🔥" * 80)
+        
+        completion_message = f"""
+✅ <b>SMG Mailer - Job Completed</b> ✅
+
+📊 <b>RESULTS:</b>
+📧 Total: {total_emails}
+✅ Sent: {self.statistics['total_sent']} ({success_rate:.1f}%)
+❌ Failed: {self.statistics['total_failed']} ({100-success_rate:.1f}%)
+⏱️ Duration: {duration_str}
+🕐 Completed: {self.statistics['end_time'].strftime('%Y-%m-%d %H:%M:%S') if self.statistics['end_time'] else 'N/A'}
+{smtp_stats}
+{proxy_stats}
+{subject_stats}
+        """
+        self.send_telegram_notification(completion_message.strip())
+
+    def check_dns_blacklist(self, domain_or_ip):
+        """Check if domain/IP is blacklisted"""
+        blacklists = [
+            'zen.spamhaus.org',
+            'bl.spamcop.net',
+            'dnsbl.sorbs.net',
+            'cbl.abuseat.org',
+            'pbl.spamhaus.org'
+        ]
+        
+        print(f"\n🔍 Checking {domain_or_ip} against DNS blacklists...")
+        results = {}
+        
+        for bl in blacklists:
+            try:
+                # For IP addresses, reverse the octets
+                if domain_or_ip.replace('.', '').isdigit():
+                    octets = domain_or_ip.split('.')
+                    reversed_ip = '.'.join(reversed(octets))
+                    query = f"{reversed_ip}.{bl}"
+                else:
+                    query = f"{domain_or_ip}.{bl}"
+                
+                socket.gethostbyname(query)
+                results[bl] = "🔴 BLACKLISTED"
+            except socket.gaierror:
+                results[bl] = "🟢 Clean"
+            except Exception as e:
+                results[bl] = f"❓ Error: {e}"
+        
+        print("\n📋 Blacklist Check Results:")
+        print("-" * 50)
+        for bl, status in results.items():
+            print(f"{bl:<25} | {status}")
+        print("-" * 50)
+        
+        blacklisted_count = sum(1 for status in results.values() if "BLACKLISTED" in status)
+        if blacklisted_count > 0:
+            print(f"⚠️ WARNING: Found on {blacklisted_count} blacklists!")
+        else:
+            print("✅ Not found on major blacklists")
+
+    def settings_menu(self):
+        """Settings and configuration menu"""
+        while True:
+            print("\n🔥 SMG Settings & Configuration 🔥")
+            print(f"1. Proxy Usage: {'🟢 ON' if self.settings['use_proxies'] else '🔴 OFF'}")
+            print(f"2. Sender Name: {self.settings['sender_name']}")
+            print(f"3. Custom Sender Email: {self.settings['sender_email'] or 'Not set'}")
+            print(f"4. Emails per SMTP: {self.settings['emails_per_smtp']}")
+            print(f"5. Emails per Proxy: {self.settings['emails_per_proxy']}")
+            print(f"6. Auto-update Proxies: {'🟢 ON' if self.settings['auto_update_proxies'] else '🔴 OFF'}")
+            print("7. DNS Blacklist Check")
+            print("8. Back to Main Menu")
+            
+            choice = input("\n🔥 Select option: ").strip()
+            
+            if choice == '1':
+                self.settings['use_proxies'] = not self.settings['use_proxies']
+                status = "enabled" if self.settings['use_proxies'] else "disabled"
+                print(f"🔄 Proxy usage {status}")
+                if not self.settings['use_proxies']:
+                    print("⚠️ WARNING: Sending without proxies may cause IP blocks!")
+            
+            elif choice == '2':
+                new_name = input(f"Enter sender name (current: {self.settings['sender_name']}): ").strip()
+                if new_name:
+                    self.settings['sender_name'] = new_name
+                    print(f"✅ Sender name updated to: {new_name}")
+            
+            elif choice == '3':
+                new_email = input(f"Enter custom sender email (current: {self.settings['sender_email'] or 'None'}): ").strip()
+                self.settings['sender_email'] = new_email
+                print(f"✅ Custom sender email {'set' if new_email else 'cleared'}")
+            
+            elif choice == '4':
+                try:
+                    new_count = int(input(f"Emails per SMTP before rotation (current: {self.settings['emails_per_smtp']}): "))
+                    if new_count > 0:
+                        self.settings['emails_per_smtp'] = new_count
+                        print(f"✅ Emails per SMTP updated to: {new_count}")
+                except ValueError:
+                    print("❌ Invalid number")
+            
+            elif choice == '5':
+                try:
+                    new_count = int(input(f"Emails per proxy before rotation (current: {self.settings['emails_per_proxy']}): "))
+                    if new_count > 0:
+                        self.settings['emails_per_proxy'] = new_count
+                        print(f"✅ Emails per proxy updated to: {new_count}")
+                except ValueError:
+                    print("❌ Invalid number")
+            
+            elif choice == '6':
+                self.setup_ip_warmup()
+            
+            elif choice == '7':
+                target = input("Enter domain or IP to check: ").strip()
+                if target:
+                    self.check_dns_blacklist(target)
+            
+            elif choice == '8':
+                break
+
+    def setup_ip_warmup(self):
+        """Configure IP warmup settings"""
+        print("\n" + "="*60)
+        print("🔥 SMG - IP WARMUP CONFIGURATION 🔥")
+        print("="*60)
+        
+        if not self.settings['warmup_enabled']:
+            print("📈 IP Warmup helps build sender reputation gradually")
+            print("🎯 Recommended for new IPs/domains to avoid spam filters")
+            print("\n📊 Warmup Schedule:")
+            print("   Days 1-3:   10-20 emails/day")
+            print("   Days 4-7:   30-50 emails/day") 
+            print("   Days 8-14:  75-100 emails/day")
+            print("   Days 15-21: 150-200 emails/day")
+            print("   Days 22+:   300+ emails/day")
+        
+        while True:
+            print(f"\n🔥 Current Status: {'ENABLED' if self.settings['warmup_enabled'] else 'DISABLED'}")
+            if self.settings['warmup_enabled']:
+                days_active = self.get_warmup_days_active()
+                recommended_limit = self.get_recommended_daily_limit(days_active)
+                print(f"📅 Days Active: {days_active}")
+                print(f"📧 Today's Limit: {self.settings['warmup_daily_limit']}")
+                print(f"📈 Recommended: {recommended_limit}")
+                print(f"✉️ Sent Today: {self.settings['warmup_emails_sent_today']}")
+            
+            print("\n🔥 Warmup Options:")
+            print("1. Enable/Disable Warmup")
+            print("2. Set Daily Email Limit")
+            print("3. Reset Warmup Progress")
+            print("4. Auto-adjust to Recommended Limits")
+            print("5. View Warmup Statistics")
+            print("0. Back to Main Menu")
+            
+            choice = input("\n🔥 Choose option: ").strip()
+            
+            if choice == '0':
+                break
+            elif choice == '1':
+                self.settings['warmup_enabled'] = not self.settings['warmup_enabled']
+                if self.settings['warmup_enabled'] and not self.settings['warmup_start_date']:
+                    self.settings['warmup_start_date'] = datetime.now().strftime('%Y-%m-%d')
+                    self.settings['warmup_daily_limit'] = 10
+                print(f"✅ Warmup {'ENABLED' if self.settings['warmup_enabled'] else 'DISABLED'}")
+                
+            elif choice == '2':
+                try:
+                    new_limit = int(input(f"Daily email limit (current: {self.settings['warmup_daily_limit']}): "))
+                    if new_limit > 0:
+                        self.settings['warmup_daily_limit'] = new_limit
+                        print(f"✅ Daily limit set to: {new_limit}")
+                except ValueError:
+                    print("❌ Invalid number")
+                    
+            elif choice == '3':
+                if input("⚠️ Reset warmup progress? (y/N): ").lower() == 'y':
+                    self.settings['warmup_start_date'] = datetime.now().strftime('%Y-%m-%d')
+                    self.settings['warmup_emails_sent_today'] = 0
+                    self.settings['warmup_last_send_date'] = None
+                    print("✅ Warmup progress reset")
+                    
+            elif choice == '4':
+                if self.settings['warmup_enabled']:
+                    days_active = self.get_warmup_days_active()
+                    recommended = self.get_recommended_daily_limit(days_active)
+                    self.settings['warmup_daily_limit'] = recommended
+                    print(f"✅ Daily limit auto-adjusted to: {recommended}")
+                else:
+                    print("❌ Enable warmup first")
+                    
+            elif choice == '5':
+                self.display_warmup_statistics()
+
+    def get_warmup_days_active(self):
+        """Calculate days since warmup started"""
+        if not self.settings['warmup_start_date']:
+            return 0
+        start_date = datetime.strptime(self.settings['warmup_start_date'], '%Y-%m-%d')
+        return (datetime.now() - start_date).days + 1
+
+    def get_recommended_daily_limit(self, days_active):
+        """Get recommended daily email limit based on warmup days"""
+        if days_active <= 3:
+            return 15
+        elif days_active <= 7:
+            return 40
+        elif days_active <= 14:
+            return 85
+        elif days_active <= 21:
+            return 175
+        else:
+            return 300
+
+    def check_warmup_limit(self):
+        """Check if warmup daily limit is reached"""
+        if not self.settings['warmup_enabled']:
+            return True, 0
+            
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        # Reset daily counter if new day
+        if self.settings['warmup_last_send_date'] != today:
+            self.settings['warmup_emails_sent_today'] = 0
+            self.settings['warmup_last_send_date'] = today
+        
+        remaining = self.settings['warmup_daily_limit'] - self.settings['warmup_emails_sent_today']
+        return remaining > 0, remaining
+
+    def update_warmup_counter(self):
+        """Update warmup email counter"""
+        if self.settings['warmup_enabled']:
+            self.settings['warmup_emails_sent_today'] += 1
+            self.settings['warmup_last_send_date'] = datetime.now().strftime('%Y-%m-%d')
+
+    def display_warmup_statistics(self):
+        """Display warmup progress and statistics"""
+        print("\n" + "="*50)
+        print("📈 WARMUP STATISTICS")
+        print("="*50)
+        
+        if not self.settings['warmup_enabled']:
+            print("❌ Warmup is disabled")
+            return
+            
+        days_active = self.get_warmup_days_active()
+        recommended = self.get_recommended_daily_limit(days_active)
+        can_send, remaining = self.check_warmup_limit()
+        
+        print(f"📅 Start Date: {self.settings['warmup_start_date']}")
+        print(f"🗓️ Days Active: {days_active}")
+        print(f"📧 Today's Limit: {self.settings['warmup_daily_limit']}")
+        print(f"📈 Recommended: {recommended}")
+        print(f"✉️ Sent Today: {self.settings['warmup_emails_sent_today']}")
+        print(f"🔄 Remaining: {remaining}")
+        print(f"🎯 Status: {'✅ Can Send' if can_send else '❌ Limit Reached'}")
+        
+        # Warmup phase
+        if days_active <= 3:
+            phase = "🌱 Initial Phase (Days 1-3)"
+        elif days_active <= 7:
+            phase = "🌿 Growth Phase (Days 4-7)"
+        elif days_active <= 14:
+            phase = "🌳 Building Phase (Days 8-14)"
+        elif days_active <= 21:
+            phase = "🚀 Scaling Phase (Days 15-21)"
+        else:
+            phase = "🔥 Full Speed Phase (Days 22+)"
+            
+        print(f"📊 Current Phase: {phase}")
+
+    def save_current_work(self):
+        """Save current work session"""
+        try:
+            filename = f"smg_work_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            
+            work_data = {
+                'recipients': self.current_work['recipients'],
+                'subjects': self.current_work['subjects'],
+                'body': self.current_work['body'],
+                'is_html': self.current_work['is_html'],
+                'attachments': self.current_work['attachments'],
+                'settings': self.settings,
+                'saved_at': datetime.now().isoformat()
+            }
+            
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(work_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"✅ Work session saved to: {filename}")
+            
+        except Exception as e:
+            print(f"❌ Error saving work session: {e}")
+
+    def load_work_session(self):
+        """Load work session"""
+        try:
+            filename = self.select_file("Select Work Session File", [("JSON files", "*.json")])
+            if not filename:
+                return
+            
+            with open(filename, 'r', encoding='utf-8') as f:
+                work_data = json.load(f)
+            
+            self.current_work['recipients'] = work_data.get('recipients', [])
+            self.current_work['subjects'] = work_data.get('subjects', [])
+            self.current_work['body'] = work_data.get('body', '')
+            self.current_work['is_html'] = work_data.get('is_html', False)
+            self.current_work['attachments'] = work_data.get('attachments', [])
+            
+            # Optionally load settings
+            if input("Load settings from session too? (y/N): ").lower() == 'y':
+                saved_settings = work_data.get('settings', {})
+                self.settings.update(saved_settings)
+            
+            print("✅ Work session loaded successfully!")
+            print(f"📧 Recipients: {len(self.current_work['recipients'])}")
+            print(f"📝 Subjects: {len(self.current_work['subjects'])}")
+            print(f"📄 Body: {'HTML' if self.current_work['is_html'] else 'Plain Text'}")
+            print(f"📎 Attachments: {len(self.current_work['attachments'])}")
+
+        except Exception as e:
+            print(f"❌ Error loading work session: {e}")
+
+    def show_help_manual(self):
+        """Show comprehensive help manual"""
+        help_text = """
+🔥🔥🔥 SMG MAILER - COMPLETE USER MANUAL 🔥🔥🔥
+
+📧 OVERVIEW:
+SMG (SMTP Mass Gateway) Mailer is a professional bulk email solution with advanced
+features including SMTP rotation, IP rotation via proxies, HTML email support,
+and comprehensive analytics.
+
+🔥 MAIN FEATURES:
+• Multiple SMTP provider support with rotation
+• Proxy support for IP rotation (HTTP, SOCKS4, SOCKS5)
+• HTML and plain text email support
+• File attachments
+• Subject line rotation
+• Priority-based sending
+• DNS blacklist checking
+• Comprehensive statistics and analytics
+• Work session saving/loading
+
+📧 GETTING STARTED:
+
+1. SMTP SETUP:
+   - Add SMTP providers manually or via bulk upload
+   - Format for bulk upload: host|port|email|password
+   - Test connections before using
+   - Supports Gmail, Outlook, Zoho, and custom SMTP servers
+
+2. PROXY SETUP (Optional but Recommended):
+   - Add proxies manually or fetch from API
+   - Supports HTTP, SOCKS4, and SOCKS5 proxies
+   - Auto-rotation prevents IP blocking
+   - Can be enabled/disabled in settings
+
+3. EMAIL COMPOSITION:
+   - Load recipients from file or enter manually
+   - Support for multiple rotating subjects
+   - HTML email support with file loading
+   - Multiple file attachments supported
+
+4. BULK SENDING:
+   - Automatic SMTP and proxy rotation
+   - Configurable delays between emails
+   - Real-time progress tracking
+   - Comprehensive statistics
+
+🔥 ADVANCED FEATURES:
+
+SMTP ROTATION:
+- Automatically rotates between SMTP providers
+- Configurable emails per provider before rotation
+- Prevents provider-specific rate limiting
+
+PROXY ROTATION:
+- Rotates IP addresses to avoid blocks
+- Configurable emails per proxy before rotation
+- Supports authentication for premium proxies
+
+SUBJECT ROTATION:
+- Multiple subjects rotate automatically
+- Improves deliverability and engagement
+- Tracks usage statistics per subject
+
+PRIORITY SENDING:
+- Organize recipients by priority (High/Medium/Low)
+- Send to high-priority recipients first
+- Useful for time-sensitive campaigns
+
+DNS BLACKLIST CHECKING:
+- Check domains/IPs against major blacklists
+- Includes Spamhaus, SpamCop, SORBS, etc.
+- Helps identify potential delivery issues
+
+WORK SESSION MANAGEMENT:
+- Save current work (recipients, subjects, body, attachments)
+- Load previous sessions to continue work
+- Includes settings backup/restore
+
+📊 STATISTICS & ANALYTICS:
+- Success/failure rates
+- SMTP provider usage distribution
+- Proxy usage statistics
+- Subject rotation analytics
+- Time-based performance metrics
+- Detailed sending logs
+
+⚙️ SETTINGS & CONFIGURATION:
+- Enable/disable proxy usage
+- Custom sender name and email
+- Rotation intervals (emails per SMTP/proxy)
+- Auto-proxy updates from API
+- Comprehensive configuration options
+
+🔧 TROUBLESHOOTING:
+
+Common Issues:
+1. SMTP Connection Failed:
+   - Verify credentials and server settings
+   - Check if 2FA is enabled (use app passwords)
+   - Ensure SMTP server allows external connections
+
+2. Proxy Connection Failed:
+   - Test proxy manually before bulk sending
+   - Try different proxy types (HTTP vs SOCKS)
+   - Check proxy authentication credentials
+
+3. Emails Going to Spam:
+   - Use proper sender names and emails
+   - Avoid spam trigger words in subjects
+   - Check DNS blacklist status
+   - Use HTML formatting properly
+
+4. Rate Limiting:
+   - Increase delays between emails
+   - Use more SMTP providers for rotation
+   - Enable proxy rotation for IP diversity
+
+📋 BEST PRACTICES:
+
+Email Deliverability:
+- Use legitimate sender names and emails
+- Maintain good sender reputation
+- Include unsubscribe links in emails
+- Monitor bounce rates and feedback loops
+
+Security:
+- Use strong passwords for SMTP accounts
+- Enable 2FA where possible
+- Use premium proxies for better reliability
+- Regularly update proxy lists
+
+Performance:
+- Test with small batches first
+- Use appropriate delays (2-5 seconds recommended)
+- Monitor provider-specific limits
+- Rotate providers and proxies regularly
+
+Legal Compliance:
+- Obtain proper consent for email lists
+- Include physical address in emails
+- Honor unsubscribe requests promptly
+- Follow local anti-spam regulations (CAN-SPAM, GDPR, etc.)
+
+🔥 SUPPORT:
+For technical support or feature requests, ensure you have:
+- SMG Mailer version information
+- Error messages (if any)
+- Configuration details
+- Steps to reproduce issues
+
+Remember: SMG Mailer is a powerful tool. Use it responsibly and in compliance
+with all applicable laws and regulations.
+
+🔥🔥🔥 END OF MANUAL 🔥🔥🔥
+        """
+        
+        print(help_text)
+        input("\nPress Enter to continue...")
+
+    def send_telegram_notification(self, message):
+        """Send notification via Telegram"""
+        if not self.telegram_settings['notifications_enabled']:
+            return False
+            
+        try:
+            url = f"https://api.telegram.org/bot{self.telegram_settings['bot_token']}/sendMessage"
+            data = {
+                'chat_id': self.telegram_settings['chat_id'],
+                'text': message,
+                'parse_mode': 'HTML'
+            }
+            
+            data_encoded = urllib.parse.urlencode(data).encode('utf-8')
+            req = urllib.request.Request(url, data=data_encoded, method='POST')
+            req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+            
+            with urllib.request.urlopen(req, timeout=10) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                return result.get('ok', False)
+                
+        except Exception as e:
+            print(f"⚠️ Telegram notification failed: {e}")
+            return False
+
+    def toggle_telegram_notifications(self):
+        """Toggle Telegram notifications on/off"""
+        current_status = "ON" if self.telegram_settings['notifications_enabled'] else "OFF"
+        print(f"\n🔥 Telegram Notifications: {current_status}")
+        
+        if input("Toggle notifications? (y/N): ").lower() == 'y':
+            self.telegram_settings['notifications_enabled'] = not self.telegram_settings['notifications_enabled']
+            new_status = "ON" if self.telegram_settings['notifications_enabled'] else "OFF"
+            print(f"✅ Telegram notifications: {new_status}")
+            
+            # Test notification
+            if self.telegram_settings['notifications_enabled']:
+                if input("Send test notification? (Y/n): ").lower() != 'n':
+                    test_msg = "🔥 SMG Mailer - Test Notification 🔥\n\nTelegram notifications are working!"
+                    if self.send_telegram_notification(test_msg):
+                        print("✅ Test notification sent successfully!")
+                    else:
+                        print("❌ Test notification failed!")
+
+    def configure_telegram_settings(self):
+        """Configure Telegram notification settings"""
+        print("\n🔔 SMG Telegram Configuration 🔔")
+        print(f"Current Bot Token: {self.telegram_settings['bot_token'][:20]}..." if self.telegram_settings['bot_token'] else "Not set")
+        print(f"Current Chat ID: {self.telegram_settings['chat_id']}")
+        print(f"Notifications: {'Enabled' if self.telegram_settings['notifications_enabled'] else 'Disabled'}")
+        
+        print("\n1. Change Bot Token")
+        print("2. Change Chat ID")
+        print("3. Toggle Notifications")
+        print("4. Test Telegram Connection")
+        print("5. Back to Settings")
+        
+        choice = input("\nSelect option: ").strip()
+        
+        if choice == '1':
+            new_token = input("Enter new bot token: ").strip()
+            if new_token:
+                self.telegram_settings['bot_token'] = new_token
+                print("✅ Bot token updated!")
+            else:
+                print("❌ Invalid token!")
+                
+        elif choice == '2':
+            try:
+                new_chat_id = input("Enter new chat ID: ").strip()
+                if new_chat_id:
+                    self.telegram_settings['chat_id'] = new_chat_id
+                    print("✅ Chat ID updated!")
+                else:
+                    print("❌ Invalid chat ID!")
+            except ValueError:
+                print("❌ Chat ID must be a number!")
+                
+        elif choice == '3':
+            self.telegram_settings['notifications_enabled'] = not self.telegram_settings['notifications_enabled']
+            status = "enabled" if self.telegram_settings['notifications_enabled'] else "disabled"
+            print(f"✅ Telegram notifications {status}!")
+            
+        elif choice == '4':
+            if self.telegram_settings['bot_token'] and self.telegram_settings['chat_id']:
+                success = self.send_telegram_notification("🧪 SMG Mailer Test Message\nTelegram notifications are working!")
+                if success:
+                    print("✅ Test message sent successfully!")
+                else:
+                    print("❌ Test message failed!")
+            else:
+                print("❌ Please configure bot token and chat ID first!")
+                
+        elif choice == '5':
+            return
+        else:
+            print("❌ Invalid choice!")
+        
+        input("\nPress Enter to continue...")
+        self.configure_telegram_settings()
+
+    def settings_menu(self):
+        """Settings and configuration menu"""
+        while True:
+            print("\n🔥 SMG Settings & Configuration 🔥")
+            print(f"1. Proxy Usage: {'🟢 ON' if self.settings['use_proxies'] else '🔴 OFF'}")
+            print(f"2. Sender Name: {self.settings['sender_name']}")
+            print(f"3. Custom Sender Email: {self.settings['sender_email'] or 'Not set'}")
+            print(f"4. Emails per SMTP: {self.settings['emails_per_smtp']}")
+            print(f"5. Emails per Proxy: {self.settings['emails_per_proxy']}")
+            print(f"6. Auto-update Proxies: {'🟢 ON' if self.settings['auto_update_proxies'] else '🔴 OFF'}")
+            print("7. DNS Blacklist Check")
+            print("8. Back to Main Menu")
+            
+            choice = input("\n🔥 Select option: ").strip()
+            
+            if choice == '1':
+                self.settings['use_proxies'] = not self.settings['use_proxies']
+                status = "enabled" if self.settings['use_proxies'] else "disabled"
+                print(f"🔄 Proxy usage {status}")
+                if not self.settings['use_proxies']:
+                    print("⚠️ WARNING: Sending without proxies may cause IP blocks!")
+            
+            elif choice == '2':
+                new_name = input(f"Enter sender name (current: {self.settings['sender_name']}): ").strip()
+                if new_name:
+                    self.settings['sender_name'] = new_name
+                    print(f"✅ Sender name updated to: {new_name}")
+            
+            elif choice == '3':
+                new_email = input(f"Enter custom sender email (current: {self.settings['sender_email'] or 'None'}): ").strip()
+                self.settings['sender_email'] = new_email
+                print(f"✅ Custom sender email {'set' if new_email else 'cleared'}")
+            
+            elif choice == '4':
+                try:
+                    new_count = int(input(f"Emails per SMTP before rotation (current: {self.settings['emails_per_smtp']}): "))
+                    if new_count > 0:
+                        self.settings['emails_per_smtp'] = new_count
+                        print(f"✅ Emails per SMTP updated to: {new_count}")
+                except ValueError:
+                    print("❌ Invalid number")
+            
+            elif choice == '5':
+                try:
+                    new_count = int(input(f"Emails per proxy before rotation (current: {self.settings['emails_per_proxy']}): "))
+                    if new_count > 0:
+                        self.settings['emails_per_proxy'] = new_count
+                        print(f"✅ Emails per proxy updated to: {new_count}")
+                except ValueError:
+                    print("❌ Invalid number")
+            
+            elif choice == '6':
+                self.setup_ip_warmup()
+            
+            elif choice == '7':
+                target = input("Enter domain or IP to check: ").strip()
+                if target:
+                    self.check_dns_blacklist(target)
+            
+            elif choice == '8':
+                break
+
+    def configure_telegram_settings(self):
+        """Configure Telegram notification settings"""
+        print("\n🔔 SMG Telegram Configuration 🔔")
+        print(f"Current Bot Token: {self.telegram_settings['bot_token'][:20]}..." if self.telegram_settings['bot_token'] else "Not set")
+        print(f"Current Chat ID: {self.telegram_settings['chat_id']}")
+        print(f"Notifications: {'Enabled' if self.telegram_settings['notifications_enabled'] else 'Disabled'}")
+        
+        print("\n1. Change Bot Token")
+        print("2. Change Chat ID")
+        print("3. Toggle Notifications")
+        print("4. Test Telegram Connection")
+        print("5. Back to Settings")
+        
+        choice = input("\nSelect option: ").strip()
+        
+        if choice == '1':
+            new_token = input("Enter new bot token: ").strip()
+            if new_token:
+                self.telegram_settings['bot_token'] = new_token
+                print("✅ Bot token updated!")
+            else:
+                print("❌ Invalid token!")
+                
+        elif choice == '2':
+            try:
+                new_chat_id = input("Enter new chat ID: ").strip()
+                if new_chat_id:
+                    self.telegram_settings['chat_id'] = new_chat_id
+                    print("✅ Chat ID updated!")
+                else:
+                    print("❌ Invalid chat ID!")
+            except ValueError:
+                print("❌ Chat ID must be a number!")
+                
+        elif choice == '3':
+            self.telegram_settings['notifications_enabled'] = not self.telegram_settings['notifications_enabled']
+            status = "enabled" if self.telegram_settings['notifications_enabled'] else "disabled"
+            print(f"✅ Telegram notifications {status}!")
+            
+        elif choice == '4':
+            if self.telegram_settings['bot_token'] and self.telegram_settings['chat_id']:
+                success = self.send_telegram_notification("🧪 SMG Mailer Test Message\nTelegram notifications are working!")
+                if success:
+                    print("✅ Test message sent successfully!")
+                else:
+                    print("❌ Test message failed!")
+            else:
+                print("❌ Please configure bot token and chat ID first!")
+                
+        elif choice == '5':
+            return
+        else:
+            print("❌ Invalid choice!")
+        
+        input("\nPress Enter to continue...")
+        self.configure_telegram_settings()
+
+    def settings_menu(self):
+        """Settings and configuration menu"""
+        while True:
+            print("\n⚙️ SMG Settings Menu ⚙️")
+            print("1. Toggle Proxy Usage")
+            print("2. Configure Sender Name")
+            print("3. Configure Custom Sender Email")
+            print("4. Configure IP Warmup")
+            print("5. Configure Telegram Notifications")  # Added Telegram settings option
+            print("6. Back to Main Menu")
+            
+            choice = input("\nSelect option: ").strip()
+            
+            if choice == '1':
+                self.settings['use_proxies'] = not self.settings['use_proxies']
+                status = "enabled" if self.settings['use_proxies'] else "disabled"
+                print(f"✅ Proxy usage {status}!")
+                
+            elif choice == '2':
+                new_name = input(f"Enter sender name (current: {self.settings['sender_name']}): ").strip()
+                if new_name:
+                    self.settings['sender_name'] = new_name
+                    print("✅ Sender name updated!")
+                    
+            elif choice == '3':
+                new_email = input(f"Enter custom sender email (current: {self.settings['custom_sender_email'] or 'Not set'}): ").strip()
+                if new_email:
+                    self.settings['custom_sender_email'] = new_email
+                    print("✅ Custom sender email updated!")
+                else:
+                    self.settings['custom_sender_email'] = None
+                    print("✅ Custom sender email cleared!")
+                    
+            elif choice == '4':
+                self.configure_warmup()
+                
+            elif choice == '5':  # Added Telegram configuration
+                self.configure_telegram_settings()
+                
+            elif choice == '6':
+                break
+            else:
+                print("❌ Invalid choice!")
+            
+            input("\nPress Enter to continue...")
+
+    def configure_warmup(self):
+        """Configure IP warmup settings"""
+        print("\n" + "="*60)
+        print("🔥 SMG - IP WARMUP CONFIGURATION 🔥")
+        print("="*60)
+        
+        if not self.settings['warmup_enabled']:
+            print("📈 IP Warmup helps build sender reputation gradually")
+            print("🎯 Recommended for new IPs/domains to avoid spam filters")
+            print("\n📊 Warmup Schedule:")
+            print("   Days 1-3:   10-20 emails/day")
+            print("   Days 4-7:   30-50 emails/day") 
+            print("   Days 8-14:  75-100 emails/day")
+            print("   Days 15-21: 150-200 emails/day")
+            print("   Days 22+:   300+ emails/day")
+        
+        while True:
+            print(f"\n🔥 Current Status: {'ENABLED' if self.settings['warmup_enabled'] else 'DISABLED'}")
+            if self.settings['warmup_enabled']:
+                days_active = self.get_warmup_days_active()
+                recommended_limit = self.get_recommended_daily_limit(days_active)
+                print(f"📅 Days Active: {days_active}")
+                print(f"📧 Today's Limit: {self.settings['warmup_daily_limit']}")
+                print(f"📈 Recommended: {recommended_limit}")
+                print(f"✉️ Sent Today: {self.settings['warmup_emails_sent_today']}")
+            
+            print("\n🔥 Warmup Options:")
+            print("1. Enable/Disable Warmup")
+            print("2. Set Daily Email Limit")
+            print("3. Reset Warmup Progress")
+            print("4. Auto-adjust to Recommended Limits")
+            print("5. View Warmup Statistics")
+            print("0. Back to Main Menu")
+            
+            choice = input("\n🔥 Choose option: ").strip()
+            
+            if choice == '0':
+                break
+            elif choice == '1':
+                self.settings['warmup_enabled'] = not self.settings['warmup_enabled']
+                if self.settings['warmup_enabled'] and not self.settings['warmup_start_date']:
+                    self.settings['warmup_start_date'] = datetime.now().strftime('%Y-%m-%d')
+                    self.settings['warmup_daily_limit'] = 10
+                print(f"✅ Warmup {'ENABLED' if self.settings['warmup_enabled'] else 'DISABLED'}")
+                
+            elif choice == '2':
+                try:
+                    new_limit = int(input(f"Daily email limit (current: {self.settings['warmup_daily_limit']}): "))
+                    if new_limit > 0:
+                        self.settings['warmup_daily_limit'] = new_limit
+                        print(f"✅ Daily limit set to: {new_limit}")
+                except ValueError:
+                    print("❌ Invalid number")
+                    
+            elif choice == '3':
+                if input("⚠️ Reset warmup progress? (y/N): ").lower() == 'y':
+                    self.settings['warmup_start_date'] = datetime.now().strftime('%Y-%m-%d')
+                    self.settings['warmup_emails_sent_today'] = 0
+                    self.settings['warmup_last_send_date'] = None
+                    print("✅ Warmup progress reset")
+                    
+            elif choice == '4':
+                if self.settings['warmup_enabled']:
+                    days_active = self.get_warmup_days_active()
+                    recommended = self.get_recommended_daily_limit(days_active)
+                    self.settings['warmup_daily_limit'] = recommended
+                    print(f"✅ Daily limit auto-adjusted to: {recommended}")
+                else:
+                    print("❌ Enable warmup first")
+                    
+            elif choice == '5':
+                self.display_warmup_statistics()
+
+    def get_warmup_days_active(self):
+        """Calculate days since warmup started"""
+        if not self.settings['warmup_start_date']:
+            return 0
+        start_date = datetime.strptime(self.settings['warmup_start_date'], '%Y-%m-%d')
+        return (datetime.now() - start_date).days + 1
+
+    def get_recommended_daily_limit(self, days_active):
+        """Get recommended daily email limit based on warmup days"""
+        if days_active <= 3:
+            return 15
+        elif days_active <= 7:
+            return 40
+        elif days_active <= 14:
+            return 85
+        elif days_active <= 21:
+            return 175
+        else:
+            return 300
+
+    def check_warmup_limit(self):
+        """Check if warmup daily limit is reached"""
+        if not self.settings['warmup_enabled']:
+            return True, 0
+            
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        # Reset daily counter if new day
+        if self.settings['warmup_last_send_date'] != today:
+            self.settings['warmup_emails_sent_today'] = 0
+            self.settings['warmup_last_send_date'] = today
+        
+        remaining = self.settings['warmup_daily_limit'] - self.settings['warmup_emails_sent_today']
+        return remaining > 0, remaining
+
+    def update_warmup_counter(self):
+        """Update warmup email counter"""
+        if self.settings['warmup_enabled']:
+            self.settings['warmup_emails_sent_today'] += 1
+            self.settings['warmup_last_send_date'] = datetime.now().strftime('%Y-%m-%d')
+
+    def display_warmup_statistics(self):
+        """Display warmup progress and statistics"""
+        print("\n" + "="*50)
+        print("📈 WARMUP STATISTICS")
+        print("="*50)
+        
+        if not self.settings['warmup_enabled']:
+            print("❌ Warmup is disabled")
+            return
+            
+        days_active = self.get_warmup_days_active()
+        recommended = self.get_recommended_daily_limit(days_active)
+        can_send, remaining = self.check_warmup_limit()
+        
+        print(f"📅 Start Date: {self.settings['warmup_start_date']}")
+        print(f"🗓️ Days Active: {days_active}")
+        print(f"📧 Today's Limit: {self.settings['warmup_daily_limit']}")
+        print(f"📈 Recommended: {recommended}")
+        print(f"✉️ Sent Today: {self.settings['warmup_emails_sent_today']}")
+        print(f"🔄 Remaining: {remaining}")
+        print(f"🎯 Status: {'✅ Can Send' if can_send else '❌ Limit Reached'}")
+        
+        # Warmup phase
+        if days_active <= 3:
+            phase = "🌱 Initial Phase (Days 1-3)"
+        elif days_active <= 7:
+            phase = "🌿 Growth Phase (Days 4-7)"
+        elif days_active <= 14:
+            phase = "🌳 Building Phase (Days 8-14)"
+        elif days_active <= 21:
+            phase = "🚀 Scaling Phase (Days 15-21)"
+        else:
+            phase = "🔥 Full Speed Phase (Days 22+)"
+            
+        print(f"📊 Current Phase: {phase}")
+
+    def save_current_work(self):
+        """Save current work session"""
+        try:
+            filename = f"smg_work_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            
+            work_data = {
+                'recipients': self.current_work['recipients'],
+                'subjects': self.current_work['subjects'],
+                'body': self.current_work['body'],
+                'is_html': self.current_work['is_html'],
+                'attachments': self.current_work['attachments'],
+                'settings': self.settings,
+                'saved_at': datetime.now().isoformat()
+            }
+            
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(work_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"✅ Work session saved to: {filename}")
+            
+        except Exception as e:
+            print(f"❌ Error saving work session: {e}")
+
+    def load_work_session(self):
+        """Load work session"""
+        try:
+            filename = self.select_file("Select Work Session File", [("JSON files", "*.json")])
+            if not filename:
+                return
+            
+            with open(filename, 'r', encoding='utf-8') as f:
+                work_data = json.load(f)
+            
+            self.current_work['recipients'] = work_data.get('recipients', [])
+            self.current_work['subjects'] = work_data.get('subjects', [])
+            self.current_work['body'] = work_data.get('body', '')
+            self.current_work['is_html'] = work_data.get('is_html', False)
+            self.current_work['attachments'] = work_data.get('attachments', [])
+            
+            # Optionally load settings
+            if input("Load settings from session too? (y/N): ").lower() == 'y':
+                saved_settings = work_data.get('settings', {})
+                self.settings.update(saved_settings)
+            
+            print("✅ Work session loaded successfully!")
+            print(f"📧 Recipients: {len(self.current_work['recipients'])}")
+            print(f"📝 Subjects: {len(self.current_work['subjects'])}")
+            print(f"📄 Body: {'HTML' if self.current_work['is_html'] else 'Plain Text'}")
+            print(f"📎 Attachments: {len(self.current_work['attachments'])}")
+
+        except Exception as e:
+            print(f"❌ Error loading work session: {e}")
+
+    def show_help_manual(self):
+        """Show comprehensive help manual"""
+        help_text = """
+🔥🔥🔥 SMG MAILER - COMPLETE USER MANUAL 🔥🔥🔥
+
+📧 OVERVIEW:
+SMG (SMTP Mass Gateway) Mailer is a professional bulk email solution with advanced
+features including SMTP rotation, IP rotation via proxies, HTML email support,
+and comprehensive analytics.
+
+🔥 MAIN FEATURES:
+• Multiple SMTP provider support with rotation
+• Proxy support for IP rotation (HTTP, SOCKS4, SOCKS5)
+• HTML and plain text email support
+• File attachments
+• Subject line rotation
+• Priority-based sending
+• DNS blacklist checking
+• Comprehensive statistics and analytics
+• Work session saving/loading
+
+📧 GETTING STARTED:
+
+1. SMTP SETUP:
+   - Add SMTP providers manually or via bulk upload
+   - Format for bulk upload: host|port|email|password
+   - Test connections before using
+   - Supports Gmail, Outlook, Zoho, and custom SMTP servers
+
+2. PROXY SETUP (Optional but Recommended):
+   - Add proxies manually or fetch from API
+   - Supports HTTP, SOCKS4, and SOCKS5 proxies
+   - Auto-rotation prevents IP blocking
+   - Can be enabled/disabled in settings
+
+3. EMAIL COMPOSITION:
+   - Load recipients from file or enter manually
+   - Support for multiple rotating subjects
+   - HTML email support with file loading
+   - Multiple file attachments supported
+
+4. BULK SENDING:
+   - Automatic SMTP and proxy rotation
+   - Configurable delays between emails
+   - Real-time progress tracking
+   - Comprehensive statistics
+
+🔥 ADVANCED FEATURES:
+
+SMTP ROTATION:
+- Automatically rotates between SMTP providers
+- Configurable emails per provider before rotation
+- Prevents provider-specific rate limiting
+
+PROXY ROTATION:
+- Rotates IP addresses to avoid blocks
+- Configurable emails per proxy before rotation
+- Supports authentication for premium proxies
+
+SUBJECT ROTATION:
+- Multiple subjects rotate automatically
+- Improves deliverability and engagement
+- Tracks usage statistics per subject
+
+PRIORITY SENDING:
+- Organize recipients by priority (High/Medium/Low)
+- Send to high-priority recipients first
+- Useful for time-sensitive campaigns
+
+DNS BLACKLIST CHECKING:
+- Check domains/IPs against major blacklists
+- Includes Spamhaus, SpamCop, SORBS, etc.
+- Helps identify potential delivery issues
+
+WORK SESSION MANAGEMENT:
+- Save current work (recipients, subjects, body, attachments)
+- Load previous sessions to continue work
+- Includes settings backup/restore
+
+📊 STATISTICS & ANALYTICS:
+- Success/failure rates
+- SMTP provider usage distribution
+- Proxy usage statistics
+- Subject rotation analytics
+- Time-based performance metrics
+- Detailed sending logs
+
+⚙️ SETTINGS & CONFIGURATION:
+- Enable/disable proxy usage
+- Custom sender name and email
+- Rotation intervals (emails per SMTP/proxy)
+- Auto-proxy updates from API
+- Comprehensive configuration options
+
+🔧 TROUBLESHOOTING:
+
+Common Issues:
+1. SMTP Connection Failed:
+   - Verify credentials and server settings
+   - Check if 2FA is enabled (use app passwords)
+   - Ensure SMTP server allows external connections
+
+2. Proxy Connection Failed:
+   - Test proxy manually before bulk sending
+   - Try different proxy types (HTTP vs SOCKS)
+   - Check proxy authentication credentials
+
+3. Emails Going to Spam:
+   - Use proper sender names and emails
+   - Avoid spam trigger words in subjects
+   - Check DNS blacklist status
+   - Use HTML formatting properly
+
+4. Rate Limiting:
+   - Increase delays between emails
+   - Use more SMTP providers for rotation
+   - Enable proxy rotation for IP diversity
+
+📋 BEST PRACTICES:
+
+Email Deliverability:
+- Use legitimate sender names and emails
+- Maintain good sender reputation
+- Include unsubscribe links in emails
+- Monitor bounce rates and feedback loops
+
+Security:
+- Use strong passwords for SMTP accounts
+- Enable 2FA where possible
+- Use premium proxies for better reliability
+- Regularly update proxy lists
+
+Performance:
+- Test with small batches first
+- Use appropriate delays (2-5 seconds recommended)
+- Monitor provider-specific limits
+- Rotate providers and proxies regularly
+
+Legal Compliance:
+- Obtain proper consent for email lists
+- Include physical address in emails
+- Honor unsubscribe requests promptly
+- Follow local anti-spam regulations (CAN-SPAM, GDPR, etc.)
+
+🔥 SUPPORT:
+For technical support or feature requests, ensure you have:
+- SMG Mailer version information
+- Error messages (if any)
+- Configuration details
+- Steps to reproduce issues
+
+Remember: SMG Mailer is a powerful tool. Use it responsibly and in compliance
+with all applicable laws and regulations.
+
+🔥🔥🔥 END OF MANUAL 🔥🔥🔥
+        """
+        
+        print(help_text)
+        input("\nPress Enter to continue...")
+
+    def send_telegram_notification(self, message):
+        """Send notification via Telegram"""
+        if not self.telegram_settings['notifications_enabled']:
+            return False
+            
+        try:
+            url = f"https://api.telegram.org/bot{self.telegram_settings['bot_token']}/sendMessage"
+            data = {
+                'chat_id': self.telegram_settings['chat_id'],
+                'text': message,
+                'parse_mode': 'HTML'
+            }
+            
+            data_encoded = urllib.parse.urlencode(data).encode('utf-8')
+            req = urllib.request.Request(url, data=data_encoded, method='POST')
+            req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+            
+            with urllib.request.urlopen(req, timeout=10) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                return result.get('ok', False)
+                
+        except Exception as e:
+            print(f"⚠️ Telegram notification failed: {e}")
+            return False
+
+    def toggle_telegram_notifications(self):
+        """Toggle Telegram notifications on/off"""
+        current_status = "ON" if self.telegram_settings['notifications_enabled'] else "OFF"
+        print(f"\n🔥 Telegram Notifications: {current_status}")
+        
+        if input("Toggle notifications? (y/N): ").lower() == 'y':
+            self.telegram_settings['notifications_enabled'] = not self.telegram_settings['notifications_enabled']
+            new_status = "ON" if self.telegram_settings['notifications_enabled'] else "OFF"
+            print(f"✅ Telegram notifications: {new_status}")
+            
+            # Test notification
+            if self.telegram_settings['notifications_enabled']:
+                if input("Send test notification? (Y/n): ").lower() != 'n':
+                    test_msg = "🔥 SMG Mailer - Test Notification 🔥\n\nTelegram notifications are working!"
+                    if self.send_telegram_notification(test_msg):
+                        print("✅ Test notification sent successfully!")
+                    else:
+                        print("❌ Test notification failed!")
+
+    def main_menu(self):
+        """Main menu interface"""
+        while True:
+            print("\n" + "🔥" * 80)
+            print("🔥" + " " * 25 + "SMG MAILER - SMTP MASS GATEWAY" + " " * 18 + "🔥")
+            print("🔥" + " " * 20 + "Professional Bulk Email Solution" + " " * 20 + "🔥")
+            print("🔥" * 80)
+            
+            print("\n🔥 MAIN MENU:")
+            print("1. 🔧 SMTP Configuration")
+            print("2. 🌐 Proxy Management") 
+            print("3. ✉️ Compose Email")
+            print("4. 🚀 Send Bulk Emails")
+            print("5. 📊 View Statistics")
+            print("6. ⚙️ Settings")
+            print("7. 📱 Telegram Notifications")  # Added Telegram notifications menu
+            print("8. 🆘 Help Manual")
+            print("9. 🚪 Exit")
+            
+            choice = input("\n🔥 Select option (1-9): ").strip()
+            
+            if choice == '1':
+                self.setup_smtp_providers()
+            elif choice == '2':
+                self.setup_proxy_management()
+            elif choice == '3':
+                self.compose_email()
+            elif choice == '4':
+                self.send_bulk_emails()
+            elif choice == '5':
+                self.show_sending_statistics()
+            elif choice == '6':
+                self.settings_menu()
+            elif choice == '7':  # Added Telegram notifications option
+                self.toggle_telegram_notifications()
+            elif choice == '8':
+                self.show_help_manual()
+            elif choice == '9':
+                print("🔥 Thank you for using SMG Mailer! 🔥")
+                break
+            else:
+                print("❌ Invalid option! Please try again.")
+
+if __name__ == "__main__":
+    mailer = SMGMailer()
+    mailer.main_menu()
+    def remove_failed_smtp(self, smtp_name):
+        """Remove SMTP provider that consistently fails"""
+        for i, provider in enumerate(self.smtp_providers):
+            if provider['name'] == smtp_name:
+                provider['active'] = False
+                print(f"🚫 Disabled SMTP provider: {smtp_name}")
+                break
+
+    def save_failed_recipients(self, failed_list):
+        """Save failed recipients to file for retry"""
+        if not failed_list:
+            return
+            
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"failed_recipients_{timestamp}.txt"
+        
+        try:
+            with open(filename, 'w') as f:
+                for recipient in failed_list:
+                    f.write(f"{recipient}\n")
+            print(f"💾 Saved {len(failed_list)} failed recipients to {filename}")
+            return filename
+        except Exception as e:
+            print(f"❌ Error saving failed recipients: {e}")
+            return None
+
+    def retry_failed_recipients(self):
+        """Retry sending to previously failed recipients"""
+        try:
+            from tkinter import filedialog
+            import tkinter as tk
+            root = tk.Tk()
+            root.withdraw()
+            
+            file_path = filedialog.askopenfilename(
+                title="Select failed recipients file",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+            )
+            root.destroy()
+            
+            if file_path:
+                with open(file_path, 'r') as f:
+                    failed_recipients = [line.strip() for line in f if line.strip()]
+                
+                print(f"📧 Loaded {len(failed_recipients)} failed recipients")
+                self.current_work['recipients'] = failed_recipients
+                return True
+        except:
+            # Fallback to manual input
+            print("📧 Enter failed recipients (one per line, empty line to finish):")
+            recipients = []
+            while True:
+                recipient = input().strip()
+                if not recipient:
+                    break
+                recipients.append(recipient)
+            
+            if recipients:
+                self.current_work['recipients'] = recipients
+                return True
+        
+        return False
+    def send_bulk_emails(self):
+        if not self.smtp_providers:
+            print("❌ No SMTP providers configured!")
+            return
+        
+        if not self.current_work['recipients']:
+            print("❌ No recipients loaded!")
+            return
+        
+        if not self.current_work['subjects']:
+            print("❌ No subjects configured!")
+            return
+        
+        if not self.current_work['body']:
+            print("❌ No email body configured!")
+            return
+
+        if not hasattr(self, 'smtp_usage'):
+            self.smtp_usage = {}
+
+        # Display configuration before sending
+        self.display_send_configuration()
+        
+        confirm = input("\n🔥 Start bulk sending? (y/N): ").lower()
+        if confirm != 'y':
+            return
+
+        delay = input("⏱️ Delay between emails (seconds, default 3): ").strip()
+        delay = int(delay) if delay.isdigit() else 3
+
+        # Initialize statistics
+        self.statistics = {
+            'start_time': datetime.now(),
+            'total_sent': 0,
+            'total_failed': 0,
+            'smtp_usage': {},
+            'proxy_usage': {},
+            'subject_usage': {}
+        }
+
+        # Send start notification
+        start_message = f"""
+🔥 SMG Mailer - Bulk Send Started! 🔥
+
+📧 Recipients: {len(self.current_work['recipients'])}
+📝 Subjects: {len(self.current_work['subjects'])}
+🔄 SMTP Providers: {len([p for p in self.smtp_providers if p['active']])}
+🌐 Proxies: {'Enabled' if self.settings['proxy_enabled'] else 'Disabled'}
+⏱️ Delay: {delay}s
+🕐 Started: {self.statistics['start_time'].strftime('%Y-%m-%d %H:%M:%S')}
+        """
+        self.send_telegram_notification(start_message.strip())
+        
+        print(f"\n🔥 Starting bulk email campaign! 🔥")
+        
+        failed_recipients = []  # Track failed recipients
+        smtp_failure_count = {}  # Track SMTP failures
+        
+        for i, recipient in enumerate(self.current_work['recipients'], 1):
+            # Check warmup limits
+            if self.settings['warmup_enabled']:
+                if not self.check_warmup_limit():
+                    print(f"⚠️ Daily warmup limit reached ({self.settings['warmup_daily_limit']} emails)")
+                    break
+
+            # Get current providers
+            current_smtp = self.get_next_smtp_provider()
+            if not current_smtp:
+                print("❌ No active SMTP providers available!")
+                break
+                
+            current_proxy = self.get_next_proxy() if self.settings['proxy_enabled'] else None
+            current_subject = self.get_next_subject()
+
+            print(f"\n📧 Sending {i}/{len(self.current_work['recipients'])} to {recipient}")
+            print(f"🔄 SMTP: {current_smtp['name']} | 🌐 Proxy: {current_proxy['proxy'] if current_proxy else 'Direct'}")
+
+            success = self.send_email(
+                recipient,
+                current_subject,
+                self.current_work['body'],
+                self.current_work['body_type'],
+                self.current_work['attachments'],
+                current_smtp,
+                current_proxy
+            )
+
+            if success:
+                self.statistics['total_sent'] += 1
+                print(f"✅ Email sent successfully!")
+                
+                # Update warmup counter
+                if self.settings['warmup_enabled']:
+                    self.settings['warmup_emails_sent_today'] += 1
+                    self.settings['warmup_last_send_date'] = datetime.now().date()
+                    
+            else:
+                self.statistics['total_failed'] += 1
+                failed_recipients.append(recipient)  # Add to failed list
+                
+                smtp_name = current_smtp['name']
+                smtp_failure_count[smtp_name] = smtp_failure_count.get(smtp_name, 0) + 1
+                
+                if smtp_failure_count[smtp_name] >= 5:
+                    print(f"🚫 SMTP {smtp_name} failed {smtp_failure_count[smtp_name]} times, disabling...")
+                    self.remove_failed_smtp(smtp_name)
+                
+                print(f"❌ Email failed!")
+
+            # Update statistics
+            smtp_name = current_smtp['name']
+            self.statistics['smtp_usage'][smtp_name] = self.statistics['smtp_usage'].get(smtp_name, 0) + 1
+            
+            if current_proxy:
+                proxy_name = current_proxy['proxy']
+                self.statistics['proxy_usage'][proxy_name] = self.statistics['proxy_usage'].get(proxy_name, 0) + 1
+            
+            self.statistics['subject_usage'][current_subject] = self.statistics['subject_usage'].get(current_subject, 0) + 1
+
+            # Progress indicator
+            progress = (i / len(self.current_work['recipients'])) * 100
+            print(f"📊 Progress: {progress:.1f}% | ✅ Sent: {self.statistics['total_sent']} | ❌ Failed: {self.statistics['total_failed']}")
+
+            if i < len(self.current_work['recipients']):
+                time.sleep(delay)
+
+        if failed_recipients:
+            print(f"\n⚠️ {len(failed_recipients)} emails failed to send")
+            failed_file = self.save_failed_recipients(failed_recipients)
+            
+            retry = input("🔄 Do you want to retry failed recipients now? (y/N): ").lower()
+            if retry == 'y':
+                print("🔄 Retrying failed recipients...")
+                self.current_work['recipients'] = failed_recipients
+                return self.send_bulk_emails()  # Recursive retry
+
+        # Final statistics
+        self.statistics['end_time'] = datetime.now()
+        self.statistics['duration'] = self.statistics['end_time'] - self.statistics['start_time']
+        
+        self.display_final_statistics()
+        
+        # Send completion notification
+        completion_message = self.format_completion_message()
+        self.send_telegram_notification(completion_message)
+    def main_menu(self):
+        while True:
+            print(f"\n{'='*60}")
+            print("🔥 SMG MAILER - SMTP MASS GATEWAY 🔥")
+            print("Professional Bulk Email Solution")
+            print(f"{'='*60}")
+            print("1. 📧 SMTP Configuration")
+            print("2. 🌐 Proxy Management") 
+            print("3. ✍️ Compose Email")
+            print("4. 🚀 Send Bulk Emails")
+            print("5. 📊 View Statistics")
+            print("6. ⚙️ Settings")
+            print("7. 🔄 Retry Failed Recipients")  # Added retry option
+            print("8. 📖 Help Manual")
+            print("9. 🚪 Exit")
+            
+            choice = input("\n🔥 Select option: ").strip()
+            
+            if choice == '1':
+                self.smtp_menu()
+            elif choice == '2':
+                self.proxy_menu()
+            elif choice == '3':
+                self.compose_email()
+            elif choice == '4':
+                self.send_bulk_emails()
+            elif choice == '5':
+                self.display_statistics()
+            elif choice == '6':
+                self.settings_menu()
+            elif choice == '7':  # Added retry failed recipients
+                if self.retry_failed_recipients():
+                    print("✅ Failed recipients loaded successfully!")
+                else:
+                    print("❌ No failed recipients loaded")
+            elif choice == '8':
+                self.show_help_manual()
+            elif choice == '9':
+                print("👋 Thanks for using SMG Mailer!")
+                break
+            else:
+                print("❌ Invalid option!")

@@ -1,0 +1,36 @@
+🔥 Send emails to 3 recipients? (y/n): y
+🔧 Max concurrent threads (default 5): 5
+⏱️  Delay between emails in seconds (default 1.0): 4
+
+🚀 Starting bulk email sending...
+⚙️  Settings: 5 threads, 4.0s delay
+2025-09-02 08:37:41,216 - ERROR - Failed to send email to leahmorah@gmail.com via 587: [Errno 11001] getaddrinfo failed
+2025-09-02 08:37:43,261 - ERROR - Failed to send email to advor@charter.net via 587: [Errno 11001] getaddrinfo failed
+2025-09-02 08:37:43,634 - ERROR - Failed to send email to info@fcnsef.org via 587: [Errno 11001] getaddrinfo failed
+2025-09-02 08:37:46,239 - ERROR - Failed to send email to leahmorah@gmail.com via 587: [Errno 11001] getaddrinfo failed
+2025-09-02 08:37:49,306 - ERROR - Failed to send email to advor@charter.net via 587: [Errno 11001] getaddrinfo failed
+2025-09-02 08:37:50,021 - ERROR - Failed to send email to leahmorah@gmail.com via 587: [Errno 11001] getaddrinfo failed
+[████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 33.3% (1/3) ⚡ 0.1/s ⏱️ ETA: 0:34 💀
+💀 leahmorah@gmail.com: [Errno 11001] getaddrinfo failed
+2025-09-02 08:37:51,251 - ERROR - Failed to send email to info@fcnsef.org via 587: [Errno 11001] getaddrinfo failed
+2025-09-02 08:37:55,036 - ERROR - Failed to send email to advor@charter.net via 587: [Errno 11001] getaddrinfo failed
+[█████████████████████████████████░░░░░░░░░░░░░░░░░] 66.7% (2/3) ⚡ 0.1/s ⏱️ ETA: 0:11 💀
+💀 advor@charter.net: [Errno 11001] getaddrinfo failed
+2025-09-02 08:37:55,523 - ERROR - Failed to send email to info@fcnsef.org via 587: [Errno 11001] getaddrinfo failed
+[██████████████████████████████████████████████████] 100.0% (3/3) ⚡ 0.1/s ⏱️ ETA: 0:00 💀
+
+💀 info@fcnsef.org: [Errno 11001] getaddrinfo failed
+
+============================================================
+            SENDING SUMMARY
+============================================================
+😈 Souls Harvested: 0
+💀 Souls Lost: 3
+👹 Total Demons Deployed: 3
+🔥 Hell Success Rate: 0.0%
+
+💀 Lost Souls:
+  💀 leahmorah@gmail.com: [Errno 11001] getaddrinfo failed
+  💀 advor@charter.net: [Errno 11001] getaddrinfo failed
+  💀 info@fcnsef.org: [Errno 11001] getaddrinfo failed
+===================================================

@@ -1,0 +1,5 @@
+mail.masekomedia.com|587|info@masekomedia.com|Dani.uhny1|
+#mail.mentalsoft.net|587|info@mentalsoft.net|01AdanA01AdanA
+#smtp.groupenour.com|587|em-service@groupenour.com|SIRIMAGN@2013
+#vaslclick.com|587|sales@vaslclick.com|@WhoKnows
+#mail.musoartcafe.id|587 |admin@musoartcafe.id|Muso2022!

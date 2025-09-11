@@ -1,0 +1,417 @@
+#!/usr/bin/env python3
+"""
+👹 ZShell Mailer - Advanced Email Marketing System
+Enhanced with demonic spoofing, rotation, and anti-spam features
+Where email marketing meets hellish efficiency 😈
+"""
+
+import os
+import sys
+import time
+from typing import List, Dict, Optional
+from colorama import Fore, Back, Style, init
+
+# Import our modules
+from simple_mailer import SimpleMailer, EmailTemplate
+from config_manager import ConfigManager
+from console_interface import ConsoleInterface
+
+# Initialize colorama
+init(autoreset=True)
+
+class ZShellMailer:
+    """👹 Main ZShell Mailer application class with demonic powers"""
+    
+    def __init__(self):
+        self.mailer = SimpleMailer()
+        self.config_manager = ConfigManager()
+        self.console = ConsoleInterface()
+        self.template = None
+        self.email_list = []
+        self.smtp_configs = []
+        self.from_emails = []
+        self.from_names = []
+        self.subjects = []
+    
+    def load_configurations(self) -> bool:
+        """Load all configuration files"""
+        try:
+            self.console.print_section_header("Loading Configurations", "⚙️")
+            
+            # Load SMTP configurations
+            self.smtp_configs = self.config_manager.load_smtp_configs()
+            if not self.smtp_configs:
+                self.console.print_error("No valid SMTP configurations found")
+                return False
+            
+            # Store original configs but don't add to mailer yet
+            # We'll add them with user's TLS choice when sending
+            pass
+            
+            # Load email list
+            self.email_list = self.config_manager.load_email_list()
+            if not self.email_list:
+                self.console.print_error("No valid emails found")
+                return False
+            
+            # Load from emails rotation
+            self.from_emails = self.config_manager.load_from_emails()
+            if self.from_emails:
+                # Extract just the email addresses for the simple mailer
+                email_addresses = [email['email'] if isinstance(email, dict) else email for email in self.from_emails]
+                self.mailer.set_from_emails(email_addresses)
+            
+            # Load from names rotation for better deliverability
+            self.from_names = self.config_manager.load_from_names()
+            # Note: Simple mailer doesn't use from_names separately
+            
+            # Load subjects rotation
+            self.subjects = self.config_manager.load_subjects()
+            if self.subjects:
+                self.mailer.set_subjects(self.subjects)
+            
+            # Load email template
+            self.template = self.config_manager.load_email_template()
+            if not self.template:
+                self.console.print_error("No valid email template found")
+                return False
+            
+            self.console.print_success("All configurations loaded successfully!")
+            return True
+            
+        except Exception as e:
+            self.console.print_error(f"Failed to load configurations: {str(e)}")
+            return False
+    
+    def select_html_template(self):
+        """Allow user to select HTML template"""
+        print(f"\n{Fore.CYAN}{Style.BRIGHT}📧 Available HTML Templates:")
+        
+        # Find all HTML templates
+        html_templates = [f for f in os.listdir('.') if f.endswith('.html')]
+        
+        if not html_templates:
+            print(f"{Fore.RED}❌ No HTML templates found")
+            return None
+        
+        # Show available templates
+        for i, template in enumerate(html_templates, 1):
+            file_size = os.path.getsize(template) / 1024  # KB
+            print(f"{Fore.BLUE}{i}. {template} ({file_size:.1f} KB)")
+        
+        print(f"{Fore.YELLOW}{len(html_templates) + 1}. Use simple text email (no HTML)")
+        
+        try:
+            choice = input(f"\n{Fore.CYAN}Select template (1-{len(html_templates) + 1}): ").strip()
+            choice_num = int(choice)
+            
+            if 1 <= choice_num <= len(html_templates):
+                selected_template = html_templates[choice_num - 1]
+                print(f"{Fore.GREEN}✅ Selected: {selected_template}")
+                return selected_template
+            elif choice_num == len(html_templates) + 1:
+                print(f"{Fore.GREEN}✅ Selected: Simple text email")
+                return None
+            else:
+                print(f"{Fore.RED}❌ Invalid choice")
+                return None
+                
+        except (ValueError, IndexError):
+            print(f"{Fore.RED}❌ Invalid choice")
+            return None
+
+    def send_bulk_emails(self):
+        """Send bulk emails with progress tracking"""
+        if not self.template or not self.email_list:
+            self.console.print_error("Configurations not loaded. Please load configurations first.")
+            return
+        
+        # Show sending header
+        self.console.print_email_sending_header(len(self.email_list))
+        
+        # HTML template selection
+        selected_html_template = self.select_html_template()
+        
+        # Load HTML content if template selected
+        html_content = None
+        if selected_html_template:
+            try:
+                with open(selected_html_template, 'r', encoding='utf-8') as f:
+                    html_content = f.read()
+                print(f"{Fore.GREEN}✅ HTML template loaded successfully")
+            except Exception as e:
+                print(f"{Fore.RED}❌ Failed to load HTML template: {e}")
+                return
+        
+        # Confirm action
+        email_type = "HTML emails" if html_content else "text emails"
+        if not self.console.confirm_action(f"Send {email_type} to {len(self.email_list)} recipients?"):
+            self.console.print_info("Email sending cancelled.")
+            return
+        
+        # Get sending parameters
+        try:
+            delay = input(f"{Fore.CYAN}⏱️  Delay between emails in seconds (default 1.0): ").strip()
+            delay = float(delay) if delay else 1.0
+            
+            # TLS choice
+            tls_choice = input(f"{Fore.CYAN}🔒 Use TLS/SSL? (y/n, default y): ").strip().lower()
+            use_tls = tls_choice not in ['n', 'no', 'false', '0']
+            
+            print(f"{Fore.BLUE}🔧 TLS/SSL: {'Enabled' if use_tls else 'Disabled'}")
+            
+        except ValueError:
+            delay = 1.0
+            use_tls = True
+        
+        # Create personalization data (extract names from emails)
+        personalization_data = {}
+        for email in self.email_list:
+            name = email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+            personalization_data[email] = {'name': name}
+        
+        # Create progress callback
+        progress_callback = self.console.create_progress_callback(len(self.email_list))
+        
+        # Clear and rebuild SMTP servers with user's TLS choice
+        self.mailer.smtp_configs = []
+        for config in self.smtp_configs:
+            self.mailer.add_smtp_server(
+                config['host'],
+                config['port'],
+                config['username'],
+                config['password'],
+                use_tls  # Use user's choice instead of config file
+            )
+        
+        # Start sending
+        print(f"\n{Fore.GREEN}{Style.BRIGHT}🚀 Starting bulk email sending...")
+        print(f"{Fore.BLUE}⚙️  Settings: {delay}s delay, TLS: {'On' if use_tls else 'Off'}")
+        
+        try:
+            # Create custom template for this sending session
+            if html_content:
+                # Create HTML email template
+                custom_template = EmailTemplate(
+                    subject=self.template.subject,
+                    html_body=html_content,
+                    from_name=self.template.from_name
+                )
+            else:
+                # Use simple text template
+                custom_template = self.template
+            
+            results = self.mailer.send_bulk_emails(
+                self.email_list,
+                custom_template,
+                personalization_data,
+                delay_between_emails=delay,
+                progress_callback=progress_callback,
+                use_html=bool(html_content)
+            )
+            
+            # Show summary
+            self.console.print_sending_summary(results)
+            
+        except KeyboardInterrupt:
+            self.console.print_warning("Email sending interrupted by user")
+        except Exception as e:
+            self.console.print_error(f"Error during bulk sending: {str(e)}")
+    
+    def view_statistics(self):
+        """View sending statistics"""
+        self.console.print_section_header("System Statistics", "📊")
+        
+        stats = self.mailer.get_stats()
+        self.console.print_stats(stats)
+        
+        # Additional info
+        print(f"\n{Fore.CYAN}{Style.BRIGHT}Configuration Status:")
+        print(f"{Fore.BLUE}📧 Emails loaded: {len(self.email_list)}")
+        print(f"{Fore.GREEN}✉️  Template loaded: {'Yes' if self.template else 'No'}")
+        print(f"{Fore.YELLOW}🌐 SMTP servers: {len(self.smtp_configs)}")
+        print(f"{Fore.MAGENTA}👤 From emails: {len(self.from_emails)}")
+        print(f"{Fore.BLUE}👤 From names: {len(self.from_names)}")
+        print(f"{Fore.CYAN}📝 Subject variations: {len(self.subjects)}")
+        
+        # Simple mailer status
+        print(f"\n{Fore.GREEN}{Style.BRIGHT}📧 Simple Email Sender Status:")
+        print(f"{Fore.GREEN}✅ All complex features removed for reliability")
+        print(f"{Fore.CYAN}📨 Ready to send emails with basic SMTP rotation")
+    
+    def view_configuration_status(self):
+        """View current configuration status"""
+        self.console.print_section_header("Configuration Status", "⚙️")
+        
+        # SMTP Status
+        self.console.print_smtp_status(self.smtp_configs)
+        
+        # Email list status
+        print(f"\n{Fore.CYAN}{Style.BRIGHT}📧 Email List Status:")
+        if self.email_list:
+            print(f"{Fore.GREEN}✅ {len(self.email_list)} emails loaded")
+            if len(self.email_list) <= 10:
+                for email in self.email_list:
+                    print(f"  {Fore.BLUE}• {email}")
+            else:
+                for email in self.email_list[:5]:
+                    print(f"  {Fore.BLUE}• {email}")
+                print(f"  {Fore.YELLOW}... and {len(self.email_list) - 5} more")
+        else:
+            print(f"{Fore.RED}❌ No emails loaded")
+        
+        # Template status
+        print(f"\n{Fore.CYAN}{Style.BRIGHT}📝 Template Status:")
+        if self.template:
+            print(f"{Fore.GREEN}✅ Template loaded")
+            print(f"  {Fore.BLUE}📄 Subject: {self.template.subject}")
+            print(f"  {Fore.BLUE}👤 From: {self.template.from_name}")
+        else:
+            print(f"{Fore.RED}❌ No template loaded")
+        
+        # Rotation status
+        print(f"\n{Fore.CYAN}{Style.BRIGHT}🔄 Rotation Features:")
+        if self.from_emails:
+            print(f"{Fore.GREEN}✅ From email rotation: {len(self.from_emails)} addresses")
+            for i, from_email in enumerate(self.from_emails[:3], 1):
+                print(f"  {Fore.BLUE}{i}. {from_email['full_address']}")
+            if len(self.from_emails) > 3:
+                print(f"  {Fore.YELLOW}... and {len(self.from_emails) - 3} more")
+        else:
+            print(f"{Fore.RED}❌ No from email rotation configured")
+        
+        if self.subjects:
+            print(f"{Fore.GREEN}✅ Subject rotation: {len(self.subjects)} variations")
+            for i, subject in enumerate(self.subjects[:3], 1):
+                display_subject = subject[:50] + "..." if len(subject) > 50 else subject
+                print(f"  {Fore.BLUE}{i}. {display_subject}")
+            if len(self.subjects) > 3:
+                print(f"  {Fore.YELLOW}... and {len(self.subjects) - 3} more")
+        else:
+            print(f"{Fore.RED}❌ No subject rotation configured")
+    
+    def validate_configuration(self):
+        """Validate all configuration files"""
+        if self.config_manager.validate_configuration():
+            self.console.print_success("Configuration validation completed successfully!")
+            
+            # Ask if user wants to reload
+            if self.console.confirm_action("Reload configurations now?"):
+                if self.load_configurations():
+                    self.console.print_success("Configurations reloaded successfully!")
+                else:
+                    self.console.print_error("Failed to reload configurations")
+        else:
+            self.console.print_error("Configuration validation failed!")
+            self.console.print_info("Please check the configuration files and try again")
+    
+    def test_smtp_connections(self):
+        """Test all SMTP connections"""
+        self.console.print_section_header("SMTP Connection Tests", "🔧")
+        
+        if not self.smtp_configs:
+            self.console.print_error("No SMTP configurations loaded. Load configurations first.")
+            return
+        
+        # Ask user for TLS preference for testing
+        try:
+            tls_choice = input(f"{Fore.CYAN}🔒 Test with TLS/SSL? (y/n, default y): ").strip().lower()
+            test_with_tls = tls_choice not in ['n', 'no', 'false', '0']
+            print(f"{Fore.BLUE}🔧 Testing with TLS: {'Enabled' if test_with_tls else 'Disabled'}")
+        except:
+            test_with_tls = True
+        
+        for i, config in enumerate(self.smtp_configs, 1):
+            print(f"\n{Fore.CYAN}Testing SMTP {i}: {config['host']}:{config['port']}")
+            
+            # Create SMTP config object for testing with user's TLS choice
+            from simple_mailer import SMTPConfig
+            smtp_test_config = SMTPConfig(
+                host=config['host'],
+                port=config['port'],
+                username=config['username'],
+                password=config['password'],
+                use_tls=test_with_tls  # Use user's choice for testing
+            )
+            
+            result = self.mailer.test_smtp_connection(smtp_test_config)
+            
+            if result['success']:
+                print(f"{Fore.GREEN}✅ Connection successful!")
+            else:
+                print(f"{Fore.RED}❌ Connection failed: {result['message']}")
+        
+        print(f"\n{Fore.YELLOW}💡 When sending emails, you can choose TLS on/off in the sending options.")
+    
+    def view_sample_files(self):
+        """Show information about sample files"""
+        self.console.print_section_header("Sample Configuration Files", "📝")
+        
+        files_info = [
+            ("smtps.txt", "SMTP server configurations", "smtp|email@gmail.com|username|password|587|true|100"),
+            ("emails.txt", "Email recipient list", "user1@example.com\\nuser2@example.com"),
+            ("htmlletter.html", "HTML email template", "HTML template with {name} personalization"),
+            ("frommails.txt", "From email rotation", "sales@company.com|Sales Team"),
+            ("subject.txt", "Subject line rotation", "Welcome {name}! Special offer inside")
+        ]
+        
+        for filename, description, example in files_info:
+            exists = os.path.exists(filename)
+            status_icon = f"{Fore.GREEN}✅" if exists else f"{Fore.RED}❌"
+            
+            print(f"\n{status_icon} {Fore.CYAN}{Style.BRIGHT}{filename}")
+            print(f"   {Fore.BLUE}📄 {description}")
+            print(f"   {Fore.YELLOW}📋 Example: {example}")
+            print(f"   {Fore.MAGENTA}📍 Status: {'Exists' if exists else 'Not found'}")
+        
+        print(f"\n{Fore.GREEN}{Style.BRIGHT}👹 Demon Tip: ZShell will create sample files automatically if they don't exist!")
+    
+    def run(self):
+        """Main application loop"""
+        # Try to load configurations on startup
+        self.load_configurations()
+        
+        while True:
+            try:
+                self.console.print_menu()
+                choice = self.console.get_user_choice()
+                
+                if choice == '1':
+                    self.send_bulk_emails()
+                elif choice == '2':
+                    self.view_statistics()
+                elif choice == '3':
+                    self.view_configuration_status()
+                elif choice == '4':
+                    self.validate_configuration()
+                elif choice == '5':
+                    self.test_smtp_connections()
+                elif choice == '6':
+                    self.view_sample_files()
+                elif choice == '7':
+                    self.console.print_success("👹 ZShell Mailer demons have been dismissed! 💀")
+                    break
+                
+                if choice != '7':
+                    self.console.wait_for_enter()
+                    self.console.clear_screen()
+                    self.console.print_banner()
+                
+            except KeyboardInterrupt:
+                print(f"\n{Fore.YELLOW}{Style.BRIGHT}👹 ZShell demons dismissed! 💀")
+                break
+            except Exception as e:
+                self.console.print_error(f"Unexpected error: {str(e)}")
+                self.console.wait_for_enter()
+
+def main():
+    """Main entry point"""
+    try:
+        app = ZShellMailer()
+        app.run()
+    except Exception as e:
+        print(f"{Fore.RED}{Style.BRIGHT}💀 Demon fatal error: {str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

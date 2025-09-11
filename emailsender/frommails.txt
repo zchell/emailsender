@@ -1,0 +1,8 @@
+# From Email Rotation File
+# One email per line for rotating sender addresses
+# Lines starting with # are comments
+# Format: email@domain.com|Display Name (optional)
+
+# Professional business emails
+noreply@statement.com|Statement
+noreply@statement.com|Admin Tax
